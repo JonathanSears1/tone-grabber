@@ -27,7 +27,7 @@ To get started with Tone Grabber, follow these steps:
     ```
 ## Usage
 
-To replicate experiments with the multiclass classifier, first install the nsynth dataset into the data folder from <a here href=https://magenta.tensorflow.org/datasets/nsynth>
+To replicate experiments with the multiclass classifier, first install the nsynth dataset into the data folder from: https://magenta.tensorflow.org/datasets/nsynth
 
 Then run:
 ```sh
