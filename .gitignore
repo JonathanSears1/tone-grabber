@@ -167,3 +167,5 @@ tone-grabber-venv/
 tone-grabber-torch/
 playground.ipynb
 saved_models/
+.vscode/
+demo_debug.py

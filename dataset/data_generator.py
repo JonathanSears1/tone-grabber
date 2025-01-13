@@ -6,96 +6,97 @@ import tqdm
 from transformers import AutoFeatureExtractor
 import os
 from dataset.dataset import Effect, EffectsChain, EffectChainDataset
+from dataset.feature_extractor_torch import FeatureExtractorTorch
 #from dataset.tf_dataset import TFEffectChainDataset, TFEffectsChain, TFEffect
 #from model.feature_extractor import FeatureExtractor
 import numpy as np
 from scipy.stats import truncnorm
 # Create a list of all the effects
-effects = [Delay, Gain, Chorus, Reverb, Distortion, Compressor, Phaser, NoiseGate, PitchShift, PeakFilter, LowpassFilter, LowShelfFilter, Limiter, LadderFilter, HighpassFilter, HighShelfFilter, Clipping]
+# effects = [Delay, Gain, Chorus, Reverb, Distortion, Compressor, Phaser, NoiseGate, PitchShift, PeakFilter, LowpassFilter, LowShelfFilter, Limiter, LadderFilter, HighpassFilter, HighShelfFilter, Clipping]
 #import tensorflow as tf
 # Create -a mapping of effect names to their parameters and max/min values of said parameters
 #TODO: adjust max min values to more accurate values
-effects_parameters = {
-    "Reverb": {
-        "room_size": (0, 1),
-        "damping": (0, 1),
-        "wet_level": (0, 1),
-        "dry_level": (0, 1),
-        "width": (0, 1),
-        "freeze_mode": (0, 1)
-    },
-    "Delay": {
-        "delay_seconds": (0, 2),
-        "feedback": (0, 1),
-        "mix": (0, 1)
-    },
-    "Gain": {
-        "gain_db": (-60, 24)
-    },
-    "Chorus": {
-        "rate_hz": (0.1, 5.0),
-        "depth": (0, 1),
-        "centre_delay_ms": (0, 50),
-        "feedback": (-1, 1),
-        "mix": (0, 1)
-    },
-    "Distortion": {
-        "drive_db": (0, 60)
-    },
-    "Compressor": {
-        "threshold_db": (-100, 0),
-        "ratio": (1, 20),
-        "attack_ms": (0.1, 100),
-        "release_ms": (10, 1000)
-    },
-    "Phaser": {
-        "rate_hz": (0.01, 10),
-        "depth": (0, 1),
-        "centre_frequency_hz": (0, 2000),
-        "feedback": (-1, 1),
-        "mix": (0, 1)
-    },
-    "NoiseGate": {
-        "threshold_db": (-100, 0),
-        "attack_ms": (0.1, 100),
-        "release_ms": (10, 1000)
-    },
-    "PitchShift": {
-        "semitones": (-12, 12),
-    },
-    "PeakFilter": {
-        "cutoff_frequency_hz": (20, 20000),
-        "gain_db": (-24, 24),
-        "q": (0.1, 10)
-    },
-    "LowpassFilter": {
-        "cutoff_frequency_hz": (20, 20000)
-    },
-    "LowShelfFilter": {
-        "cutoff_frequency_hz": (20, 20000),
-        "gain_db": (-24, 24),
-        "q": (0.1, 10)
-    },
-    "Limiter": {
-        "threshold_db": (-100, 0),
-        "release_ms": (10, 1000)
-    },
-    "LadderFilter": {
-        "cutoff_hz": (20, 20000),
-        "resonance": (0.0, 1)
-    },
-    "HighpassFilter": {
-        "cutoff_frequency_hz": (20, 20000),
-    },
-    "HighShelfFilter": {
-        "cutoff_frequency_hz": (20, 20000),
-        "gain_db": (-24, 24),
-        "q": (0.1, 10)
-    },
-    "Clipping": {
-        "threshold_db": (-1, 1)
-    }
-    }
+# effects_parameters = {
+#     "Reverb": {
+#         "room_size": (0, 1),
+#         "damping": (0, 1),
+#         "wet_level": (0, 1),
+#         "dry_level": (0, 1),
+#         "width": (0, 1),
+#         "freeze_mode": (0, 1)
+#     },
+#     "Delay": {
+#         "delay_seconds": (0, 2),
+#         "feedback": (0, 1),
+#         "mix": (0, 1)
+#     },
+#     "Gain": {
+#         "gain_db": (-60, 24)
+#     },
+#     "Chorus": {
+#         "rate_hz": (0.1, 5.0),
+#         "depth": (0, 1),
+#         "centre_delay_ms": (0, 50),
+#         "feedback": (-1, 1),
+#         "mix": (0, 1)
+#     },
+#     "Distortion": {
+#         "drive_db": (0, 60)
+#     },
+#     "Compressor": {
+#         "threshold_db": (-100, 0),
+#         "ratio": (1, 20),
+#         "attack_ms": (0.1, 100),
+#         "release_ms": (10, 1000)
+#     },
+#     "Phaser": {
+#         "rate_hz": (0.01, 10),
+#         "depth": (0, 1),
+#         "centre_frequency_hz": (0, 2000),
+#         "feedback": (-1, 1),
+#         "mix": (0, 1)
+#     },
+#     "NoiseGate": {
+#         "threshold_db": (-100, 0),
+#         "attack_ms": (0.1, 100),
+#         "release_ms": (10, 1000)
+#     },
+#     "PitchShift": {
+#         "semitones": (-12, 12),
+#     },
+#     "PeakFilter": {
+#         "cutoff_frequency_hz": (20, 20000),
+#         "gain_db": (-24, 24),
+#         "q": (0.1, 10)
+#     },
+#     "LowpassFilter": {
+#         "cutoff_frequency_hz": (20, 20000)
+#     },
+#     "LowShelfFilter": {
+#         "cutoff_frequency_hz": (20, 20000),
+#         "gain_db": (-24, 24),
+#         "q": (0.1, 10)
+#     },
+#     "Limiter": {
+#         "threshold_db": (-100, 0),
+#         "release_ms": (10, 1000)
+#     },
+#     "LadderFilter": {
+#         "cutoff_hz": (20, 20000),
+#         "resonance": (0.0, 1)
+#     },
+#     "HighpassFilter": {
+#         "cutoff_frequency_hz": (20, 20000),
+#     },
+#     "HighShelfFilter": {
+#         "cutoff_frequency_hz": (20, 20000),
+#         "gain_db": (-24, 24),
+#         "q": (0.1, 10)
+#     },
+#     "Clipping": {
+#         "threshold_db": (-1, 1)
+#     }
+#     }
 
 class DataGenerator():
     def __init__(self, 
@@ -104,20 +105,26 @@ class DataGenerator():
         self.effects_to_parameters = effects_to_parameters
         # calculate the total number of possible parameters
         total_parameters = 0
-        for effect, params in effects_parameters.items():
+        for effect, params in effects_to_parameters.items():
             total_parameters += len(params)
         self.total_parameters = total_parameters
         # Create a dictionary to store the indices of the parameters for each effect
         effect_to_param_indices = {}
         current_index = 0
-        for effect, params in effects_parameters.items():
+        param_mask = {}
+        for effect, params in effects_to_parameters.items():
             num_params = len(params)
             if num_params > 0:
-                effect_to_param_indices[effect] = list(range(current_index, current_index + num_params))
+                idxs = list(range(current_index, current_index + num_params))
+                effect_to_param_indices[effect] = idxs
+                param_mask[effect] = [1 if i in idxs else 0 for i in range(total_parameters)]
                 current_index += num_params
         self.effect_to_param_indices = effect_to_param_indices
+        self.param_mask = param_mask
         # map each effect to a one hot encoding index
         self.effect_to_index = {effect.__name__: i for i, effect in enumerate(effects)}
+        self.index_to_effect = {i: effect.__name__  for i, effect in enumerate(effects)}
+        
         self.effects = effects
         return
     def create_data(self,
@@ -125,7 +132,7 @@ class DataGenerator():
                     dry_tone_dir: str,
                     dry_tones: list, 
                     max_chain_length: int,
-                    feature_extractor=AutoFeatureExtractor.from_pretrained("MIT/ast-finetuned-audioset-10-10-0.4593"),
+                    feature_extractor=FeatureExtractorTorch(),
                     sample_rate=16000,
                     dry_tone_features=True
                     ) -> EffectChainDataset:
@@ -137,12 +144,15 @@ class DataGenerator():
             with ReadableAudioFile(dry_tone_path) as f:
                 # re sample the audio file to match the sample rate, pretrained model is sampled at 16000
                 re_sampled = f.resampled_to(sample_rate)
-                dry_tone = re_sampled.read(int(sample_rate * f.duration))
+                dry_tone = np.squeeze(re_sampled.read(int(sample_rate * f.duration)),axis=0)
                 re_sampled.close()
                 f.close()
             # Loop over the number of samples
-            if dry_tone_features:
-                dry_tone_features = feature_extractor(dry_tone,sample_rate,return_tensors='pt')
+            
+            dry_tone_feat = feature_extractor.get_features(dry_tone)
+            dry_tone_spec = dry_tone_feat['spectrogram']
+            dry_tone_loudness = dry_tone_feat['loudness']
+            dry_tone_f0 = dry_tone_feat['f0']
             for i in range(num_samples):
                 wet_tone_data = {}
                 wet_tone_data['dry_tone_path'] = dry_tone_path
@@ -167,7 +177,11 @@ class DataGenerator():
                     for param in parameters:
                         # Randomly select a value for the parameter with truncated normal dsitribution
                         min_val,max_val = self.effects_to_parameters[effect_name][param]
-                        value = truncnorm.rvs(min_val,max_val,loc=(min_val+max_val)/2,scale=(max_val-min_val)/4)
+                        mean = (min_val + max_val) / 2
+                        std_dev = (max_val - min_val) / 4
+                        # Calculate a and b
+                        a, b = (min_val - mean) / std_dev, (max_val - mean) / std_dev
+                        value = truncnorm.rvs(a,b,loc=mean,scale=std_dev)
                         # Add the parameter to the dictionary
                         effect_data[param] = value
                         parameter_values.append(value)
@@ -180,14 +194,30 @@ class DataGenerator():
                 effect_chain = EffectsChain(effect_list, dry_tone_path, wet_tone_data['wet_tone_path'], len(self.effects),max_chain_length, self.total_parameters)
                 wet_tone = pedalboard(dry_tone, sample_rate * f.duration)
                 # we don't need to save the actual wet tone because it can be recreated with the dry tone + effect data
-                wet_tone_features = feature_extractor(wet_tone, sampling_rate=sample_rate, return_tensors="pt")
-                wet_tone_data['wet_tone_features'] = wet_tone_features['input_values'].squeeze(0)
+                wet_tone_features = feature_extractor.get_features(wet_tone)
+
+                wet_tone_data['wet_tone_spectrogram'] = wet_tone_features['spectrogram']
+                wet_tone_data['wet_tone_loudness'] = wet_tone_features['loudness']
+                wet_tone_data['wet_tone_f0'] = wet_tone_features['f0']
                 wet_tone_data['effects'] = effect_chain.effects.squeeze(0)
                 wet_tone_data['parameters'] = effect_chain.parameters.squeeze(0)
                 wet_tone_data['names'] = effect_chain.names
-                wet_tone_data['dry_tone_features'] = dry_tone_features['input_values'].squeeze(0)
+                wet_tone_data['dry_tone_spec'] = dry_tone_spec
+                wet_tone_data['dry_tone_loudness'] = dry_tone_loudness
+                wet_tone_data['dry_tone_f0'] = dry_tone_f0
                 # Append the data to the list
                 data.append(wet_tone_data)
         # Return the data
         dataset = EffectChainDataset(data)
         return dataset
+    def get_metadata(self):
+        param_mask_idx = {self.effect_to_index[k]:v for k,v in self.param_mask.items()}
+        return {
+                "parameter_mask_str": self.param_mask,
+                "parameter_mask_idx":param_mask_idx,
+                "effect_to_idx": self.effect_to_index,
+                "index_to_effect":self.index_to_effect,
+                "effects": self.effects,
+                "total_parameters":self.total_parameters,
+                "effects_to_parameters": self.effects_to_parameters
+                }

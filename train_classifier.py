@@ -91,24 +91,24 @@ try:
         data = json.load(f)
 except FileNotFoundError as e:
     print("You need to download the NSynth dataset first, or change the path to the examples.json file.")
-
+    raise e
 df = pd.DataFrame.from_records(data)
 df = df.T
 guitar_df = df[df['instrument_family_str'] == 'guitar']
 elctric_guitar_df = guitar_df[guitar_df['instrument_source_str'] == "electronic"]
 elctric_guitar_df = elctric_guitar_df.sample(1000)
 dry_tones = [dry_tone + ".wav" for dry_tone in elctric_guitar_df['note_str'].tolist()]
-
-print("Generating dataset")
-dataset = generator.create_data(10, 'data/nsynth-train.jsonwav/nsynth-train/audio',dry_tones=dry_tones,max_chain_length=1)
-print("Dataset generated")
-train_data, test_data = train_test_split(dataset, test_size=0.2)
+train_data, test_data = train_test_split(dry_tones, test_size=0.2)
 test_data, val_data = train_test_split(test_data, test_size=0.5)
-train_loader = DataLoader(train_data, batch_size=4, shuffle=True)
-test_loader = DataLoader(test_data, batch_size=4, shuffle=False)
-val_loader = DataLoader(val_data, batch_size=4, shuffle=False)
+print("generating data")
+train_dataset = generator.create_data(10, 'data/nsynth-train.jsonwav/nsynth-train/audio',dry_tones=train_data,max_chain_length=1)
+test_dataset = generator.create_data(10, 'data/nsynth-train.jsonwav/nsynth-train/audio',dry_tones=test_data,max_chain_length=1)
+val_dataset = generator.create_data(10, 'data/nsynth-train.jsonwav/nsynth-train/audio',dry_tones=val_data,max_chain_length=1)
+train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size=4, shuffle=False)
+val_loader = DataLoader(val_dataset, batch_size=4, shuffle=False)
 
-def eval(model, loss_fn, dl):
+def eval(model, loss_fn, dl, batch_size = 4):
     model.eval()
     total_loss = 0
     labels = []
@@ -128,13 +128,15 @@ def eval(model, loss_fn, dl):
             labels.append(torch.argmax(label[i], dim=0).cpu().numpy())
             labels_.append(torch.nn.functional.one_hot(torch.argmax(label[i], dim=0), num_classes=5).cpu().numpy())
             logits.append(logits_[i].cpu().numpy())
-    loss = total_loss
-    print(f"Test: Accuracy:{accuracy_score(labels, preds)} | AUROC: {roc_auc_score(labels_, logits)} | Total Loss:{total_loss}")
-    return loss
+    loss = total_loss / len(dl) * batch_size
+    accuracy = accuracy_score(labels, preds)
+    auroc = roc_auc_score(labels_, logits)
+    print(f"Test: Accuracy:{accuracy} | AUROC: {auroc} | Avg Loss:{loss}")
+    return loss, accuracy, auroc
 
 def train(model, optimizer, loss_fn, train_loader,test_loader,lr_scheduler, epochs=10):
     model.train()
-    min_loss = 99999999
+    best_accuracy = 0
     labels = []
     labels_ = []
     preds = []
@@ -157,17 +159,17 @@ def train(model, optimizer, loss_fn, train_loader,test_loader,lr_scheduler, epoc
                 labels_.append(torch.nn.functional.one_hot(torch.argmax(label[i], dim=0), num_classes=5).detach().cpu().numpy())
                 logits.append(output[i].detach().cpu().numpy())
         print(f"Train: Epoch {epoch+1} | Accuracy: {accuracy_score(labels,preds)} | AUROC: {roc_auc_score(labels_,logits)} | Loss: {total_loss}")
-        loss = eval(model, loss_fn, test_loader)
+        loss, accuracy, auroc = eval(model, loss_fn, test_loader)
         lr_scheduler.step(loss)
-        if loss < min_loss:
+        if accuracy > best_accuracy:
             print(f"saving model at epoch {epoch+1}")
-            min_loss = loss
+            best_accuracy = accuracy
             torch.save(model.state_dict(), "saved_models/multiclass_model.pth")
     return
 
 model = EffectClassifier(5).to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=.000002)
-scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=2, factor=0.5, verbose=True)
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=2, factor=0.25)
 loss_fn = torch.nn.CrossEntropyLoss()
 
 print("Beginning model training")
@@ -175,5 +177,3 @@ train(model, optimizer, loss_fn, train_loader, test_loader,scheduler, epochs=20)
 print("Model training complete")
 print("Evaluating model")
 eval(model, loss_fn, val_loader)
-
-
