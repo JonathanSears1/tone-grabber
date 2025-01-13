@@ -26,11 +26,9 @@ To get started with Tone Grabber, follow these steps:
     pip install -r requirements_torch.txt
     ```
 ## Usage
+To get a betterr understanding of the tone grabber repo, check out our demo notebook ```demo.ipynb```
 
-To replicate experiments with the multiclass classifier, first install the nsynth dataset into the data folder from: https://magenta.tensorflow.org/datasets/nsynth
-
-Then run:
-```sh
-python train_classifier.py
-```
-You could also chose to use a different dataset of audio samples, although you may have to make some other adjustments
+The demo notebook covers:
+- How to use the dataset generator
+- How to use the feature extractor class to get the audio spectrogram, loudness, and fundamental frequency 
+- How to run inference with the parameterr prrediction model and intepreate the outputs to apply the predicted effects to audio samples
