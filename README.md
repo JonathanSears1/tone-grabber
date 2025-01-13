@@ -31,4 +31,4 @@ To get a betterr understanding of the tone grabber repo, check out our demo note
 The demo notebook covers:
 - How to use the dataset generator
 - How to use the feature extractor class to get the audio spectrogram, loudness, and fundamental frequency 
-- How to run inference with the parameterr prrediction model and intepreate the outputs to apply the predicted effects to audio samples
+- How to run inference with the parameter prrediction model and intepreate the outputs to apply the predicted effects to audio samples
