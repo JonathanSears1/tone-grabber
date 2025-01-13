@@ -74,12 +74,27 @@ class EffectChainDataset(Dataset):
         entry = self.data[idx]
         dry_tone_path = entry['dry_tone_path']
         wet_tone_path = entry['wet_tone_path']
-        wet_tone_features = entry['wet_tone_features']
+        wet_tone_spectrogram = entry['wet_tone_spectrogram']
+        wet_tone_loudness = entry['wet_tone_loudness']
+        wet_tone_f0 = entry['wet_tone_f0']
+        dry_tone_spectrogram = entry['dry_tone_spec']
+        dry_tone_loudness = entry['dry_tone_loudness']
+        dry_tone_f0 = entry['dry_tone_f0']
+        
         names = entry['names']
         effects = entry['effects']
         parameters = entry['parameters']
-        if self.dry_tone_features:
-            dry_tone_feat = entry['dry_tone_features']
-            return {"dry_tone_path":dry_tone_path,"wet_tone_path":wet_tone_path,"wet_tone_features":wet_tone_features,"dry_tone_features":dry_tone_feat,"effect_names":names,"effects":effects, "parameters":parameters, "index":idx}
-        else:
-            return {"dry_tone_path":dry_tone_path,"wet_tone_path":wet_tone_path,"wet_tone_features":wet_tone_features,"effect_names":names,"effects":effects, "parameters":parameters, "index":idx}
+        dry_tone = {
+            "spectrogram":dry_tone_spectrogram,
+            "loudness":dry_tone_loudness,
+            "f0":dry_tone_f0,
+            "path":dry_tone_path
+            }
+        wet_tone = {
+            "spectrogram":wet_tone_spectrogram,
+            "loudness":wet_tone_loudness,
+            "f0":wet_tone_f0
+        }
+        
+        return {"dry_tone":dry_tone,"wet_tone":wet_tone,"effect_names":names,"effects":effects,"parameters":parameters,"index":idx}
+        
