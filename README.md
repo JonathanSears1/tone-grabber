@@ -12,23 +12,20 @@ To get started with Tone Grabber, follow these steps:
     ```
 
 2. Install the required dependencies:
-    due to cuda dependency issues with the versions of pytorch and tensorflow used in this project we recommend using 2 separate enviornments.
-    To install the tensorflow enviornment run the following commands 
-    ```sh
-    python3 -m venv tone-grabber-venv
-    source tone-grabber-venv/bin/activate
-    pip install -r requirements.txt
-    ```
-    To install the pytorch eniornment run the following commands
     ```sh
     python3 -m venv tone-grabber-venv-torch
     source tone-grabber-venv-torch/bin/activate
-    pip install -r requirements_torch.txt
+    pip install -r requirements.txt
     ```
 ## Usage
-To get a betterr understanding of the tone grabber repo, check out our demo notebook ```demo.ipynb```
+To get a better understanding of the tone grabber repo, check out our demo notebook: [demo.ipynb](demo.ipynb)
 
 The demo notebook covers:
 - How to use the dataset generator
 - How to use the feature extractor class to get the audio spectrogram, loudness, and fundamental frequency 
 - How to run inference with the parameter prrediction model and intepreate the outputs to apply the predicted effects to audio samples
+
+To recreate the parameter prediction experiments:
+```
+python train.py
+```
