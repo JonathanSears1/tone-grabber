@@ -1,0 +1,89 @@
+{% extends 'parent.html' %}
+{% block title %}Home{% endblock %}
+{% block head %}
+    {{ super() }}
+    {{ dropzone.load_css() }}
+    <style>
+        .dropzone {
+            flex: auto;
+            border: 2px dashed #0087F7;
+            border-radius: 5px;
+            background-color: whitesmoke;
+            color: #0087F7;
+            text-align: center;
+            justify-self: center;
+            width: 400px;
+            height: 400px;
+            display: flex;
+        }
+        .dz-default.dz-message {
+            flex: auto;
+            justify-content: center;
+            align-items: center;
+            background-color: whitesmoke;
+        }
+        .dz-button {
+            flex: auto;
+            justify-content: center;
+            align-items: center;
+            background-color: whitesmoke;
+        }
+        #container {
+            flex: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 36px;
+            justify-content: center;
+            width: 100%;
+        }
+        #instructions {
+            text-align: center;
+            padding: 20px;
+            flex: auto;
+            gap: 10px;
+            display: flex;
+            flex-direction: column;
+            padding-bottom: 0%;
+        }
+        #wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #outtakes {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            flex: auto;
+            width: 100%;
+        }
+        #best {
+            flex: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            width: 100%;
+        }
+    </style>
+{% endblock %}
+{% block content %}
+<div id = "wrapper">
+    <div id = "instructions">
+    </div>
+    <div id = "container">
+        {{ dropzone.load_js() }}
+        <div id = "outtakes">
+        <h2>Drag and drop your target tone here</h2>
+        <form action = "/upload_tone" class = "dropzone" id = "outtakes"></form>
+        </div>
+        <div id = "best">
+        <h2>Drag and drop your target tone here</h2>
+        <form action = "/upload_tone" class = "dropzone" id = "best"></form>
+        </div>
+        {{ dropzone.config() }}
+    </div>
+</div>
+{% endblock %}
