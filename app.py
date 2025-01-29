@@ -19,7 +19,9 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 #initialize dropzone
 dropzone = Dropzone(app)
 SAMPLE_RATE = 16000
-
+app.config["SESSION_TYPE"] = "filesystem"
+app.config["SECRET_KEY"] = "supersecretkey"
+Session(app)
 
 #TODO: Change this to be read in by the user, ie let the user pick and choose what effects they have start with a checklist + button
 
@@ -65,26 +67,39 @@ model = ParameterPrediction(num_effects,num_parameters,param_mask,num_heads=8)
 @app.route('/')
 def index():
     return render_template('index.html')
+    
+def resample_tone(file):
+    with ReadableAudioFile(io.BytesIO(file.read())) as f:
+        re_sampled = f.resampled_to(SAMPLE_RATE)
+        tone = np.squeeze(re_sampled.read(int(SAMPLE_RATE * f.duration)),axis=0)
+        re_sampled.close()
+        f.close()
+    return tone
 
-@app.route('/upload_tone')
-def upload_tone():
+@app.route('/upload_wet_tone')
+def upload_wet_tone():
     try:
         # Ensure a file was uploaded
         if "file" not in request.files:
             return jsonify({"error": "No file uploaded"}), 400
-        
         file = request.files["file"]
-        
-        # Read audio file using Pedalboard's ReadableAudioFile
-        with ReadableAudioFile(io.BytesIO(file.read())) as f:
-            re_sampled = f.resampled_to(SAMPLE_RATE)
-            tone = np.squeeze(re_sampled.read(int(SAMPLE_RATE * f.duration)),axis=0)
-            re_sampled.close()
-            f.close()
+        tone = resample_tone(file)
         return tone
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
+@app.route('/upload_dry_tone')
+def upload_dry_tone():
+    try:
+        # Ensure a file was uploaded
+        if "file" not in request.files:
+            return jsonify({"error": "No file uploaded"}), 400
+        file = request.files["file"]
+        tone = resample_tone(file)
+        return tone
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 def predict(wet_tone, dry_tone):
+    #TODO: fill out prediction function
     return
