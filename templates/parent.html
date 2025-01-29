@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+{% block head %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %}</title>
+    <style>
+      * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+          font-family: "Ubuntu", sans-serif;
+          background-color: aliceblue;
+      }
+      body {
+          padding: 0%;
+       }
+      .header-link {
+          text-decoration: none;
+          color: whitesmoke;
+          background-color: #035191;
+          font-size: 1.5vw;
+      }
+      #header {
+          padding: 10px;
+          background-color: #035191;
+          display: flex;
+          justify-content: space-between;
+          gap: .1vw;
+          width: auto;
+      }
+      .header {
+        background-color: #035191;
+        color: whitesmoke;
+        justify-content: center;
+        align-items: center;
+      }
+      #nav {
+          flex: auto;
+          display: flex;
+          justify-content: space-between;
+          color: aliceblue;
+          background-color: #035191;
+          gap: .25vw;
+      }
+      #logo-container {
+        justify-content: center;
+        align-items: center;
+        flex: auto;
+        background-color: #035191;
+      }
+      #logo {
+          background-color: #035191;
+          color: whitesmoke;
+          font-size: 3vw;
+          font-weight: bold;
+          margin-right: auto;
+      }
+      #links {
+          margin-left: auto;
+          display: flex;
+          flex: auto;
+          gap: .25vw;
+          justify-content: right;
+          background-color: #035191;
+      }
+      #intakes {
+        font-size: 3vw;
+        font-weight: bold;
+        flex: auto;
+        align-items: center;
+        display: flex;
+      }
+      .header-item {
+          padding: 10px;
+          color: whitesmoke;
+          background-color: #035191;
+      }
+      .ubuntu-light {
+        font-family: "Ubuntu", sans-serif;
+        font-weight: 300;
+        font-style: normal;
+      }
+      .ubuntu-regular {
+        font-family: "Ubuntu", sans-serif;
+        font-weight: 400;
+        font-style: normal;
+      }
+      .ubuntu-medium {
+        font-family: "Ubuntu", sans-serif;
+        font-weight: 500;
+        font-style: normal;
+      }
+      .ubuntu-bold {
+        font-family: "Ubuntu", sans-serif;
+        font-weight: 700;
+        font-style: normal;
+      }
+      .ubuntu-light-italic {
+        font-family: "Ubuntu", sans-serif;
+        font-weight: 300;
+        font-style: italic;
+      }
+      .ubuntu-regular-italic {
+        font-family: "Ubuntu", sans-serif;
+        font-weight: 400;
+        font-style: italic;
+      }
+      .ubuntu-medium-italic {
+        font-family: "Ubuntu", sans-serif;
+        font-weight: 500;
+        font-style: italic;
+      }
+      .ubuntu-bold-italic {
+        font-family: "Ubuntu", sans-serif;
+        font-weight: 700;
+        font-style: italic;
+      }
+    </style>
+{% endblock %}
+</head>
+<body>
+    <div id = "header" class = "header">
+        <div id = "logo-container">
+            <span id = "logo">Tulane University Capstone</span>
+        </div>
+        <div id = "intakes" class= "header">Tone Grabber: Intelligent Audio Effect Modeling</div>
+        <div id = "nav" class = "header">
+            <ul id = "links" style = "list-style: none;">
+                <li class="header-item"><a class = "header-link" href = "/">Home</a></li>
+                <li class="header-item"><a class = "header-link" href = "/about" >About</a></li>
+                <li class="header-item"><a class = "header-link" href = "/contact" >Contact</a></li>
+            </ul>
+        </div>
+    </div>
+    {% block content %}
+    {% endblock %}
+</body>
+</html>
