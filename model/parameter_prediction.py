@@ -72,7 +72,7 @@ class ParameterPrediction(torch.nn.Module):
     def __init__(self, num_effects : int, num_parameters : int, parameter_mask : dict,batch_size=4, num_heads = 2, dropout = .1, embed_dim=768):
         super(ParameterPrediction, self).__init__()
         self.parameter_mask = parameter_mask
-        self.cnn = CNN(4)
+        self.cnn = CNN(batch_size)
         #self.loudness_embedding = MLP(257,128)
         #self.f0_embedding = F0_Embed(21912,embed_dim)
         #self.mlp_feat = MLP(embed_dim*4, embed_dim*2)
@@ -170,6 +170,20 @@ class Trainer():
         print(f"Test: Epoch {epoch+1} | Effect Accuracy: {test_accuracy} | Parameter MSE Loss: {total_loss}")
         return total_loss, test_accuracy
     
+    def process_audio_from_outputs(self, effect, params, dry_tone_path):
+        with ReadableAudioFile(dry_tone_path) as f:
+            re_sampled = f.resampled_to(self.sample_rate)
+            dry_tone = np.squeeze(re_sampled.read(int(self.sample_rate * f.duration)),axis=0)
+            re_sampled.close()
+            f.close()
+        predicted_effect_pb = self.metadata['effects'][int(torch.argmax(effect))]
+        predicted_params = [float(param) for param in list(params.detach()) if param != 0]
+        param_names = self.metadata['effects_to_parameters'][self.metadata['index_to_effect'][int(torch.argmax(effect))]].keys()
+        matched_params = {param_name:value for param_name,value in zip(param_names,predicted_params)}
+        predicted_effect_with_params = predicted_effect_pb(**matched_params)
+        
+        predicted_wet = predicted_effect_with_params.process(dry_tone,self.sample_rate)
+        return predicted_wet
     
     def compute_loss(self, output_effect, output_params, target_effect, target_params, loss_fn_efct, loss_fn_params, lambda_=.5):
         loss_efct = loss_fn_efct(output_effect,target_effect)
@@ -223,18 +237,3 @@ class Trainer():
                 best_loss = loss
                 torch.save(model.state_dict(), "saved_models/parameter_prediction.pth")
         return
-    
-def process_audio_from_outputs(self, effect, params, dry_tone_path):
-        with ReadableAudioFile(dry_tone_path) as f:
-            re_sampled = f.resampled_to(self.sample_rate)
-            dry_tone = np.squeeze(re_sampled.read(int(self.sample_rate * f.duration)),axis=0)
-            re_sampled.close()
-            f.close()
-        predicted_effect_pb = self.metadata['effects'][int(torch.argmax(effect))]
-        predicted_params = [float(param) for param in list(params.detach()) if param != 0]
-        param_names = self.metadata['effects_to_parameters'][self.metadata['index_to_effect'][int(torch.argmax(effect))]].keys()
-        matched_params = {param_name:value for param_name,value in zip(param_names,predicted_params)}
-        predicted_effect_with_params = predicted_effect_pb(**matched_params)
-        
-        predicted_wet = predicted_effect_with_params.process(dry_tone,self.sample_rate)
-        return predicted_wet

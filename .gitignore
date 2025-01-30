@@ -169,3 +169,4 @@ playground.ipynb
 .vscode/
 demo_debug.py
 saved_models/
+flask_session/

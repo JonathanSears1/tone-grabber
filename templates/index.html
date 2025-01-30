@@ -1,5 +1,6 @@
 {% extends 'parent.html' %}
 {% block title %}Home{% endblock %}
+
 {% block head %}
     {{ super() }}
     {{ dropzone.load_css() }}
@@ -20,70 +21,154 @@
             flex: auto;
             justify-content: center;
             align-items: center;
-            background-color: whitesmoke;
-        }
-        .dz-button {
-            flex: auto;
-            justify-content: center;
-            align-items: center;
-            background-color: whitesmoke;
         }
         #container {
-            flex: auto;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            align-items: center;
             padding: 36px;
-            justify-content: center;
-            width: 100%;
+            gap: 20px;
         }
-        #instructions {
+        .upload-section {
             text-align: center;
-            padding: 20px;
-            flex: auto;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #0087F7;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 5px;
+        }
+        #prediction-result {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            text-align: center;
+        }
+        .audio-controls {
+            margin-top: 20px;
+            display: flex;
             gap: 10px;
-            display: flex;
-            flex-direction: column;
-            padding-bottom: 0%;
-        }
-        #wrapper {
-            display: flex;
-            flex-direction: column;
+            justify-content: center;
             align-items: center;
         }
-        #outtakes {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-            flex: auto;
-            width: 100%;
+        .audio-controls button {
+            margin-top: 0;
+            min-width: 80px;
         }
-        #best {
-            flex: auto;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-            width: 100%;
+        #audioPlayer {
+            margin: 20px 0;
         }
     </style>
 {% endblock %}
+
 {% block content %}
-<div id = "wrapper">
-    <div id = "instructions">
+<div id="container">
+    <div class="upload-section">
+        <h2>Upload Dry Tone</h2>
+        <form action="/upload_dry_tone" class="dropzone" id="dry-tone-dropzone"></form>
     </div>
-    <div id = "container">
-        {{ dropzone.load_js() }}
-        <div id = "outtakes">
-        <h2>Drag and drop your target tone here</h2>
-        <form action = "/upload_wet_tone" class = "dropzone" id = "outtakes"></form>
-        </div>
-        <div id = "best">
-        <h2>Drag and drop your target tone here</h2>
-        <form action = "/upload_dry_tone" class = "dropzone" id = "best"></form>
-        </div>
-        {{ dropzone.config() }}
+
+    <div class="upload-section">
+        <h2>Upload Wet Tone</h2>
+        <form action="/upload_wet_tone" class="dropzone" id="wet-tone-dropzone"></form>
+    </div>
+
+    <button id="predict-btn" onclick="predict()">Run Prediction</button>
+
+    <div id="prediction-result"></div>
+    
+    <!-- Add audio controls -->
+    <div class="audio-controls">
+        <audio id="audioPlayer" controls></audio>
+        <button id="playButton" onclick="togglePlay()">Play</button>
+        <button id="stopButton" onclick="stopAudio()">Stop</button>
     </div>
 </div>
+
+<script>
+    let audioContext;
+    let audioSource;
+
+    async function playAudio(base64Data) {
+        // Initialize AudioContext if not exists
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        try {
+            // Stop any currently playing audio
+            if (audioSource) {
+                audioSource.stop();
+            }
+
+            // Convert base64 to array buffer
+            const response = await fetch(`data:audio/wav;base64,${base64Data}`);
+            const arrayBuffer = await response.arrayBuffer();
+            
+            // Decode audio data
+            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+            
+            // Create source and play
+            audioSource = audioContext.createBufferSource();
+            audioSource.buffer = audioBuffer;
+            audioSource.connect(audioContext.destination);
+            audioSource.start(0);
+        } catch (error) {
+            console.error('Error playing audio:', error);
+        }
+    }
+
+    function stopAudio() {
+        if (audioSource) {
+            audioSource.stop();
+            audioSource = null;
+        }
+    }
+
+    function togglePlay() {
+        if (audioContext && audioContext.state === 'suspended') {
+            audioContext.resume();
+        }
+    }
+
+    function predict() {
+        document.getElementById("prediction-result").innerHTML = "Predicting...";
+
+        fetch('/predict')
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                document.getElementById("prediction-result").innerHTML = "Error: " + data.error;
+            } else {
+                // Check if predicted_parameters exists
+                const paramsList = data.predicted_parameters ? 
+                    Object.entries(data.predicted_parameters)
+                        .map(([key, value]) => `${key}: ${value}`)
+                        .join('<br>')
+                    : 'No parameters available';
+                
+                document.getElementById("prediction-result").innerHTML = 
+                    `<h3>Predicted Effect: ${data.predicted_effect || 'Unknown'}</h3>
+                     <h4>Parameters:</h4>
+                     <div class="parameters">${paramsList}</div>`;
+                
+                if (data.audio_data) {
+                    playAudio(data.audio_data);
+                }
+            }
+        })
+        .catch(error => {
+            document.getElementById("prediction-result").innerHTML = "Error: Unable to fetch prediction";
+            console.error('Error:', error);
+        });
+    }
+</script>
+
+{{ dropzone.load_js() }}
+{{ dropzone.config() }}
 {% endblock %}
