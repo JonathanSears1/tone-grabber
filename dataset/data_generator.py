@@ -16,92 +16,12 @@ from scipy.stats import truncnorm
 #import tensorflow as tf
 # Create -a mapping of effect names to their parameters and max/min values of said parameters
 #TODO: adjust max min values to more accurate values
-# effects_parameters = {
-#     "Reverb": {
-#         "room_size": (0, 1),
-#         "damping": (0, 1),
-#         "wet_level": (0, 1),
-#         "dry_level": (0, 1),
-#         "width": (0, 1),
-#         "freeze_mode": (0, 1)
-#     },
-#     "Delay": {
-#         "delay_seconds": (0, 2),
-#         "feedback": (0, 1),
-#         "mix": (0, 1)
-#     },
-#     "Gain": {
-#         "gain_db": (-60, 24)
-#     },
-#     "Chorus": {
-#         "rate_hz": (0.1, 5.0),
-#         "depth": (0, 1),
-#         "centre_delay_ms": (0, 50),
-#         "feedback": (-1, 1),
-#         "mix": (0, 1)
-#     },
-#     "Distortion": {
-#         "drive_db": (0, 60)
-#     },
-#     "Compressor": {
-#         "threshold_db": (-100, 0),
-#         "ratio": (1, 20),
-#         "attack_ms": (0.1, 100),
-#         "release_ms": (10, 1000)
-#     },
-#     "Phaser": {
-#         "rate_hz": (0.01, 10),
-#         "depth": (0, 1),
-#         "centre_frequency_hz": (0, 2000),
-#         "feedback": (-1, 1),
-#         "mix": (0, 1)
-#     },
-#     "NoiseGate": {
-#         "threshold_db": (-100, 0),
-#         "attack_ms": (0.1, 100),
-#         "release_ms": (10, 1000)
-#     },
-#     "PitchShift": {
-#         "semitones": (-12, 12),
-#     },
-#     "PeakFilter": {
-#         "cutoff_frequency_hz": (20, 20000),
-#         "gain_db": (-24, 24),
-#         "q": (0.1, 10)
-#     },
-#     "LowpassFilter": {
-#         "cutoff_frequency_hz": (20, 20000)
-#     },
-#     "LowShelfFilter": {
-#         "cutoff_frequency_hz": (20, 20000),
-#         "gain_db": (-24, 24),
-#         "q": (0.1, 10)
-#     },
-#     "Limiter": {
-#         "threshold_db": (-100, 0),
-#         "release_ms": (10, 1000)
-#     },
-#     "LadderFilter": {
-#         "cutoff_hz": (20, 20000),
-#         "resonance": (0.0, 1)
-#     },
-#     "HighpassFilter": {
-#         "cutoff_frequency_hz": (20, 20000),
-#     },
-#     "HighShelfFilter": {
-#         "cutoff_frequency_hz": (20, 20000),
-#         "gain_db": (-24, 24),
-#         "q": (0.1, 10)
-#     },
-#     "Clipping": {
-#         "threshold_db": (-1, 1)
-#     }
-#     }
 
 class DataGenerator():
     def __init__(self, 
                  effects_to_parameters: dict,
-                 effects: list) -> None:
+                 effects: list,
+                 loudnees_and_f0 = False) -> None:
         self.effects_to_parameters = effects_to_parameters
         # calculate the total number of possible parameters
         total_parameters = 0
@@ -124,7 +44,7 @@ class DataGenerator():
         # map each effect to a one hot encoding index
         self.effect_to_index = {effect.__name__: i for i, effect in enumerate(effects)}
         self.index_to_effect = {i: effect.__name__  for i, effect in enumerate(effects)}
-        
+        self.loudness_and_f0 = loudnees_and_f0
         self.effects = effects
         return
     def create_data(self,
@@ -132,11 +52,11 @@ class DataGenerator():
                     dry_tone_dir: str,
                     dry_tones: list, 
                     max_chain_length: int,
-                    feature_extractor=FeatureExtractorTorch(),
                     sample_rate=16000,
                     dry_tone_features=True
                     ) -> EffectChainDataset:
         # Create an empty list to store the data
+        self.feature_extractor = FeatureExtractorTorch(loudness_and_f0=self.loudness_and_f0,sample_rate=sample_rate)
         data = []
         for dry_tone_path in tqdm.tqdm(dry_tones):
             name,ext = dry_tone_path.split('.')
@@ -149,10 +69,11 @@ class DataGenerator():
                 f.close()
             # Loop over the number of samples
             
-            dry_tone_feat = feature_extractor.get_features(dry_tone)
+            dry_tone_feat = self.feature_extractor.get_features(dry_tone)
             dry_tone_spec = dry_tone_feat['spectrogram']
-            dry_tone_loudness = dry_tone_feat['loudness']
-            dry_tone_f0 = dry_tone_feat['f0']
+            if self.loudness_and_f0:
+                dry_tone_loudness = dry_tone_feat['loudness']
+                dry_tone_f0 = dry_tone_feat['f0']
             for i in range(num_samples):
                 wet_tone_data = {}
                 wet_tone_data['dry_tone_path'] = dry_tone_path
@@ -190,21 +111,24 @@ class DataGenerator():
                     # Add the effect to the pedalboard
                     pedalboard.append(new_effect)
                     # Add the effect and corresponding params to the dictionary
-                    effect_list.append(Effect(self.effect_to_index[effect_name],parameter_values,len(self.effects),effect_name,self.total_parameters,self.effect_to_param_indices[effect_name],j))
+                    effect_list.append(Effect(self.effect_to_index[effect_name],parameter_values,len(self.effects),effect_name,self.total_parameters,self.effect_to_param_indices[effect_name],effect_data,j))
                 effect_chain = EffectsChain(effect_list, dry_tone_path, wet_tone_data['wet_tone_path'], len(self.effects),max_chain_length, self.total_parameters)
                 wet_tone = pedalboard(dry_tone, sample_rate * f.duration)
                 # we don't need to save the actual wet tone because it can be recreated with the dry tone + effect data
-                wet_tone_features = feature_extractor.get_features(wet_tone)
+                wet_tone_features = self.feature_extractor.get_features(wet_tone)
 
                 wet_tone_data['wet_tone_spectrogram'] = wet_tone_features['spectrogram']
-                wet_tone_data['wet_tone_loudness'] = wet_tone_features['loudness']
-                wet_tone_data['wet_tone_f0'] = wet_tone_features['f0']
+                if self.loudness_and_f0:
+                    wet_tone_data['wet_tone_loudness'] = wet_tone_features['loudness']
+                    wet_tone_data['wet_tone_f0'] = wet_tone_features['f0']
+                    wet_tone_data['dry_tone_loudness'] = dry_tone_loudness
+                    wet_tone_data['dry_tone_f0'] = dry_tone_f0
+                
                 wet_tone_data['effects'] = effect_chain.effects.squeeze(0)
                 wet_tone_data['parameters'] = effect_chain.parameters.squeeze(0)
                 wet_tone_data['names'] = effect_chain.names
                 wet_tone_data['dry_tone_spec'] = dry_tone_spec
-                wet_tone_data['dry_tone_loudness'] = dry_tone_loudness
-                wet_tone_data['dry_tone_f0'] = dry_tone_f0
+                wet_tone_data['param_dict'] = effect_chain.param_dicts
                 # Append the data to the list
                 data.append(wet_tone_data)
         # Return the data

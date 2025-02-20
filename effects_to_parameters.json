@@ -1,0 +1,81 @@
+{
+    "Reverb": {
+        "room_size": [0, 1],
+        "damping": [0, 1],
+        "wet_level": [0, 1],
+        "dry_level": [0, 1],
+        "width": [0, 1],
+        "freeze_mode": [0, 1]
+    },
+    "Delay": {
+        "delay_seconds": [0, 2],
+        "feedback": [0, 1],
+        "mix": [0, 1]
+    },
+    "Gain": {
+        "gain_db": [-60, 24]
+    },
+    "Chorus": {
+        "rate_hz": [0.1, 5.0],
+        "depth": [0, 1],
+        "centre_delay_ms": [0, 50],
+        "feedback": [-1, 1],
+        "mix": [0, 1]
+    },
+    "Distortion": {
+        "drive_db": [0, 60]
+    },
+    "Compressor": {
+        "threshold_db": [-100, 0],
+        "ratio": [1, 20],
+        "attack_ms": [0.1, 100],
+        "release_ms": [10, 1000]
+    },
+    "Phaser": {
+        "rate_hz": [0.01, 10],
+        "depth": [0, 1],
+        "centre_frequency_hz": [0, 2000],
+        "feedback": [-1, 1],
+        "mix": [0, 1]
+    },
+    "NoiseGate": {
+        "threshold_db": [-100, 0],
+        "attack_ms": [0.1, 100],
+        "release_ms": [10, 1000]
+    },
+    "PitchShift": {
+        "semitones": [-12, 12]
+    },
+    "PeakFilter": {
+        "cutoff_frequency_hz": [20, 20000],
+        "gain_db": [-24, 24],
+        "q": [0.1, 10]
+    },
+    "LowpassFilter": {
+        "cutoff_frequency_hz": [20, 20000]
+    },
+    "LowShelfFilter": {
+        "cutoff_frequency_hz": [20, 20000],
+        "gain_db": [-24, 24],
+        "q": [0.1, 10]
+    },
+    "Limiter": {
+        "threshold_db": [-100, 0],
+        "release_ms": [10, 1000]
+    },
+    "LadderFilter": {
+        "cutoff_hz": [20, 20000],
+        "resonance": [0.0, 1]
+    },
+    "HighpassFilter": {
+        "cutoff_frequency_hz": [20, 20000]
+    },
+    "HighShelfFilter": {
+        "cutoff_frequency_hz": [20, 20000],
+        "gain_db": [-24, 24],
+        "q": [0.1, 10]
+    },
+    "Clipping": {
+        "threshold_db": [-1, 1]
+    }
+}

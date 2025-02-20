@@ -3,7 +3,7 @@ import numpy as np
 from torch.utils.data import Dataset
 
 class Effect():
-    def __init__(self, effect_idx, parameters, total_effects, effect_name, total_params, param_idxs, order):
+    def __init__(self, effect_idx, parameters, total_effects, effect_name, total_params, param_idxs,param_dict, order):
         # Create a representation of the effect
         # maximum amount of effects that can be used in the effects chain - also the length of the one hot encoding
         if effect_idx == -1:
@@ -26,11 +26,12 @@ class Effect():
         self.param_repr = torch.tensor(self.param_repr, dtype=torch.float32)
         # Store the effect name
         self.effect_name = effect_name
+        self.param_dict = param_dict
         self.order = order
         return
     
     def __dict__(self):
-        return {"effect": self.effect_name,"one_hot":self.one_hot, "parameters": self.param_repr,"order":self.order}
+        return {"effect": self.effect_name,"one_hot":self.one_hot, "parameters": self.param_repr,"param_dict":self.param_dict,"order":self.order}
         
     
     
@@ -44,6 +45,7 @@ class EffectsChain():
         # Tensors of shape len(effects) X max_chain_length
         self.effects = torch.stack([effect.one_hot for effect in effects])
         self.parameters = torch.stack([effect.param_repr for effect in effects])
+        self.param_dicts = [effect.param_dict for effect in effects]
         # Keep track of the names of each effect
         self.names = [effect.effect_name for effect in effects]
         self.dry_tone_path = dry_tone_path
@@ -53,15 +55,15 @@ class EffectsChain():
     def __len__(self):
         return len(self.effects)
     def __dict__(self):
-        return {"effects":self.effects, "parameters":self.parameters, "dry_tone_path":self.dry_tone_path, "wet_tone_path":self.wet_tone_path}
+        return {"effects":self.effects, "parameters":self.parameters,"param_dict":self.param_dicts, "dry_tone_path":self.dry_tone_path, "wet_tone_path":self.wet_tone_path}
 
 class EffectChainDataset(Dataset):
-    def __init__(self, data, dry_tone_features=True):
+    def __init__(self, data, loudness_and_f0=False):
         '''
         Pass in a list of EffectsChain objects
         '''
         self.data = data
-        self.dry_tone_features = dry_tone_features
+        self.loudness_and_f0=loudness_and_f0
         return
     
     def __len__(self):
@@ -75,26 +77,37 @@ class EffectChainDataset(Dataset):
         dry_tone_path = entry['dry_tone_path']
         wet_tone_path = entry['wet_tone_path']
         wet_tone_spectrogram = entry['wet_tone_spectrogram']
-        wet_tone_loudness = entry['wet_tone_loudness']
-        wet_tone_f0 = entry['wet_tone_f0']
         dry_tone_spectrogram = entry['dry_tone_spec']
-        dry_tone_loudness = entry['dry_tone_loudness']
-        dry_tone_f0 = entry['dry_tone_f0']
-        
         names = entry['names']
         effects = entry['effects']
         parameters = entry['parameters']
-        dry_tone = {
-            "spectrogram":dry_tone_spectrogram,
-            "loudness":dry_tone_loudness,
-            "f0":dry_tone_f0,
-            "path":dry_tone_path
+        param_dict = entry['param_dict']
+
+        if self.loudness_and_f0:
+            wet_tone_loudness = entry['wet_tone_loudness']
+            wet_tone_f0 = entry['wet_tone_f0']
+            dry_tone_loudness = entry['dry_tone_loudness']
+            dry_tone_f0 = entry['dry_tone_f0']
+
+            dry_tone = {
+                "spectrogram":dry_tone_spectrogram,
+                "loudness":dry_tone_loudness,
+                "f0":dry_tone_f0,
+                "path":dry_tone_path
             }
-        wet_tone = {
-            "spectrogram":wet_tone_spectrogram,
-            "loudness":wet_tone_loudness,
-            "f0":wet_tone_f0
-        }
-        
-        return {"dry_tone":dry_tone,"wet_tone":wet_tone,"effect_names":names,"effects":effects,"parameters":parameters,"index":idx}
+            wet_tone = {
+                "spectrogram":wet_tone_spectrogram,
+                "loudness":wet_tone_loudness,
+                "f0":wet_tone_f0
+                }
+        else:
+            dry_tone = {
+                "spectrogram":dry_tone_spectrogram,
+                "path":dry_tone_path
+                }
+            wet_tone = {
+                "spectrogram":wet_tone_spectrogram,
+                }
+                
+        return {"dry_tone":dry_tone,"wet_tone":wet_tone,"effect_names":names,"effects":effects,"parameters":parameters,"param_dict":param_dict}
         

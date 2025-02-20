@@ -1,15 +1,22 @@
 import librosa
 import torch
-from basic_pitch.inference import ICASSP_2022_MODEL_PATH, Model, window_audio_file, FFT_HOP, AUDIO_N_SAMPLES, ANNOTATIONS_FPS, AUDIO_SAMPLE_RATE
 from transformers import AutoFeatureExtractor
 import numpy as np
 
 class FeatureExtractorTorch:
-    def __init__(self, sample_rate=16000, frame_rate=250):
+    def __init__(self, loudness_and_f0=False, sample_rate=16000, frame_rate=250):
         self.sample_rate = sample_rate
         self.frame_rate = frame_rate
         self.spectrogram_extractor = AutoFeatureExtractor.from_pretrained("MIT/ast-finetuned-audioset-10-10-0.4593")
-        self.basic_pitch_model = Model(ICASSP_2022_MODEL_PATH)
+        self.loudness_and_f0 = loudness_and_f0
+        if loudness_and_f0:
+            from basic_pitch.inference import ICASSP_2022_MODEL_PATH, Model, window_audio_file, FFT_HOP, AUDIO_N_SAMPLES, ANNOTATIONS_FPS, AUDIO_SAMPLE_RATE
+            self.basic_pitch_model = Model(ICASSP_2022_MODEL_PATH)
+            self.window_audio_file = window_audio_file
+            self.fft_hop = FFT_HOP
+            self.audio_n_samples = AUDIO_N_SAMPLES
+            self.annotations_fps = ANNOTATIONS_FPS
+            self.audio_sample_rate = AUDIO_SAMPLE_RATE
         return
     def compute_loudness_torch(self, audio,
                    n_fft=512,
@@ -65,7 +72,7 @@ class FeatureExtractorTorch:
             return loudness
     def preprocess_f0(self, audio,overlap_len, hop_size, original_length):
         audio_original = np.concatenate([np.zeros((int(overlap_len / 2),), dtype=np.float32), audio])
-        for window, window_time in window_audio_file(audio_original, hop_size):
+        for window, window_time in self.window_audio_file(audio_original, hop_size):
             yield np.expand_dims(window, axis=0), window_time, original_length
     
     def unwrap_output(self, output, audio_original_length: int, n_overlapping_frames: int,
@@ -89,15 +96,15 @@ class FeatureExtractorTorch:
             output = output[:, n_olap:-n_olap, :]
 
         output_shape = output.shape
-        n_output_frames_original = int(np.floor(audio_original_length * (ANNOTATIONS_FPS / AUDIO_SAMPLE_RATE)))
+        n_output_frames_original = int(np.floor(audio_original_length * (self.annotations_fps / self.audio_sample_rate)))
         unwrapped_output = output.reshape(output_shape[0] * output_shape[1], output_shape[2])
         return unwrapped_output[:n_output_frames_original, :]
 
     def get_f0(self, audio):
         # Preprocess audio
         n_overlapping_frames = 30
-        overlap_len = n_overlapping_frames * FFT_HOP
-        hop_size = AUDIO_N_SAMPLES - overlap_len
+        overlap_len = n_overlapping_frames * self.fft_hop
+        hop_size = self.audio_n_samples - overlap_len
         original_length = audio.shape[0]
         output = {"note": [], "onset": [], "contour": []}
         for audio_windowed, _, audio_original_length in self.preprocess_f0(audio, overlap_len, hop_size, original_length):
@@ -114,6 +121,9 @@ class FeatureExtractorTorch:
 
     def get_features(self, audio):
         spec = self.get_spectrogram(audio)
-        loudness = self.compute_loudness_torch(audio)
-        f0 = self.get_f0(audio)
-        return {"spectrogram":spec,"loudness":loudness,"f0":f0}
+        if self.loudness_and_f0:
+            loudness = self.compute_loudness_torch(audio)
+            f0 = self.get_f0(audio)
+            return {"spectrogram":spec,"loudness":loudness,"f0":f0}
+        else:
+            return {"spectrogram":spec}

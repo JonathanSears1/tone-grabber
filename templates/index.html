@@ -63,21 +63,33 @@
         #audioPlayer {
             margin: 20px 0;
         }
+        #upload_container {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        .upload-section {
+            flex: 1;
+            max-width: 400px;
+        }
     </style>
 {% endblock %}
 
 {% block content %}
 <div id="container">
-    <div class="upload-section">
-        <h2>Upload Dry Tone</h2>
-        <form action="/upload_dry_tone" class="dropzone" id="dry-tone-dropzone"></form>
-    </div>
+    <div id = "upload_container">
+        <div class="upload-section">
+            <h2>Upload Dry Tone</h2>
+            <form action="/upload_dry_tone" class="dropzone" id="dry-tone-dropzone"></form>
+        </div>
 
-    <div class="upload-section">
-        <h2>Upload Wet Tone</h2>
-        <form action="/upload_wet_tone" class="dropzone" id="wet-tone-dropzone"></form>
+        <div class="upload-section">
+            <h2>Upload Wet Tone</h2>
+            <form action="/upload_wet_tone" class="dropzone" id="wet-tone-dropzone"></form>
+        </div>
     </div>
-
     <button id="predict-btn" onclick="predict()">Run Prediction</button>
 
     <div id="prediction-result"></div>
