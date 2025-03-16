@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, render_template, request, jsonify
 import os
 from flask import Flask, render_template, request, flash, session
 from flask_session import Session
@@ -14,8 +14,7 @@ from pedalboard import Reverb, Delay, Chorus, Distortion, Gain
 from dataset.data_generator import DataGenerator
 import torch
 import base64
-import wavfile
-
+import soundfile as wavfile
 
 app = Flask(__name__)
 app.debug = True
@@ -61,24 +60,31 @@ effects_to_parameters = {
 }
 effects = [Reverb, Delay, Distortion, Gain, Chorus]
 
-
 generator = DataGenerator(effects_to_parameters, effects)
 metadata = generator.get_metadata()
 param_mask = metadata['parameter_mask_idx']
 num_parameters = metadata['total_parameters']
 num_effects = len(metadata['effect_to_idx'].keys())
-model = ParameterPrediction(num_effects,num_parameters,param_mask,batch_size=1,num_heads=8).to(device)
+model = ParameterPrediction(num_effects, num_parameters, param_mask, batch_size=1, num_heads=8).to(device)
 feature_extractor = FeatureExtractorTorch()
 #model = model.load_state_dict(torch.load("saved_models/parameter_prediction.pth")).to(device)
 
 @app.route('/')
 def index():
     return render_template('index.html')
-    
+
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
+@app.route('/contact')
+def contact():
+    return render_template('contact.html')
+
 def resample_tone(file):
     with ReadableAudioFile(io.BytesIO(file.read())) as f:
         re_sampled = f.resampled_to(SAMPLE_RATE)
-        tone = np.squeeze(re_sampled.read(int(SAMPLE_RATE * f.duration)),axis=0)
+        tone = np.squeeze(re_sampled.read(int(SAMPLE_RATE * f.duration)), axis=0)
         re_sampled.close()
         f.close()
     return tone
@@ -108,13 +114,12 @@ def process_audio_from_outputs(effect, params, sample_rate, metadata):
         true_val = min_val + param_val * (max_val - min_val)
         predicted_params.append(true_val)
     param_names = param_ranges.keys()
-    matched_params = {param_name:value for param_name,value in zip(param_names,predicted_params)}
+    matched_params = {param_name: value for param_name, value in zip(param_names, predicted_params)}
     predicted_effect_with_params = predicted_effect_pb(**matched_params)
-    predicted_wet = predicted_effect_with_params(dry_tone,sample_rate)
+    predicted_wet = predicted_effect_with_params(dry_tone, sample_rate)
     return effect_name, matched_params, predicted_wet
-    
 
-@app.route('/upload_wet_tone',methods=['GET','POST'])
+@app.route('/upload_wet_tone', methods=['GET', 'POST'])
 def upload_wet_tone():
     try:
         # Ensure a file was uploaded
@@ -127,7 +132,7 @@ def upload_wet_tone():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route('/upload_dry_tone',methods=['GET','POST'])
+@app.route('/upload_dry_tone', methods=['GET', 'POST'])
 def upload_dry_tone():
     try:
         # Ensure a file was uploaded
@@ -137,7 +142,6 @@ def upload_dry_tone():
         tone = resample_tone(file)
         session['dry_tone'] = tone.tolist()
         return jsonify({"message": "Dry tone uploaded successfully"})
-    
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -151,9 +155,8 @@ def predict():
         dry_tone = feature_extractor.get_spectrogram(np.array(session["dry_tone"])).to(device)
         wet_tone = feature_extractor.get_spectrogram(np.array(session["wet_tone"])).to(device)
         # TODO: Implement actual prediction logic
-        _ , effect, params = model(dry_tone, wet_tone)
- # Example if your model supports this
-        effect_name, matched_params, predicted_tone = process_audio_from_outputs(effect,params,SAMPLE_RATE,metadata)
+        _, effect, params = model(dry_tone, wet_tone)
+        effect_name, matched_params, predicted_tone = process_audio_from_outputs(effect, params, SAMPLE_RATE, metadata)
         formatted_params = {
             str(key): round(float(value), 3) 
             for key, value in matched_params.items()
@@ -170,11 +173,11 @@ def predict():
             "message": "Prediction successful",
             "predicted_effect": effect_name,
             "predicted_parameters": formatted_params
+            # "audio_data": audio_base64  # Uncomment if audio playback is implemented
         })
 
     except Exception as e:
-        return jsonify({"error": str(e)}),500
+        return jsonify({"error": str(e)}), 500
 
-if __name__ == "main":
+if __name__ == '__main__':
     app.run(debug=True)
-

@@ -1,0 +1,48 @@
+{% extends 'parent.html' %}
+{% block title %}About{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        #container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px;
+            gap: 40px;
+            background: #2d3748;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            max-width: 700px;
+            width: 90%;
+            margin: 30px auto;
+            color: #e2e8f0;
+        }
+        h2 {
+            color: #a0aec0;
+            font-weight: 500;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            letter-spacing: 0.5px;
+        }
+        p {
+            font-size: 1.1rem;
+            color: #cbd5e1;
+            line-height: 1.7;
+            text-align: center;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div id="container">
+    <h2>About Tone Grabber</h2>
+    <p>
+        Tone Grabber is a Tulane University Capstone II project developed by Jonathan Sears, Nick Radwin, Russell George, and Zach Goodman. Our mission is to empower musicians, producers, and audio engineers by reverse-engineering audio effects from sample .wav files, predicting their parameters and signal chain order to recreate iconic tones—such as Jimi Hendrix’s gritty fuzz or David Gilmour’s Uni-Vibe.
+    </p>
+    <h3>Our Vision</h3>
+    <p>
+        Inspired by the frustration of tone replication, we aim to demystify the process using a spectrogram transformer model trained on synthetic datasets. This technology analyzes spectrograms to approximate effects (e.g., reverb, delay, distortion) and their mix levels, offering a "secret recipe" for artists to mimic and innovate. Beyond music, applications include recreating unique vocal tones, like Darth Vader’s pitch-shifted voice, blending creativity with technical precision.
+    </p>
+</div>
+{% endblock %}
