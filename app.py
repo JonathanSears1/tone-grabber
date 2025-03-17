@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, render_template, request, jsonify
 import os
 from flask import Flask, render_template, request, flash, session
 from flask_session import Session
@@ -15,6 +15,9 @@ from pedalboard import Distortion, Gain, LowpassFilter, HighpassFilter, PitchShi
 from dataset.data_generator import DataGenerator
 import torch
 
+import base64
+import soundfile as sf  # Changed from 'wavfile' to 'sf' for clarity
+from io import BytesIO
 
 app = Flask(__name__)
 app.debug = True
@@ -24,11 +27,9 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 dropzone = Dropzone(app)
 SAMPLE_RATE = 16000
 app.config["SESSION_TYPE"] = "filesystem"
-# app.config["SECRET_KEY"] = "supersecretkey"
 Session(app)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-#TODO: Change this to be read in by the user, ie let the user pick and choose what effects they have start with a checklist + button
 
 effects = [Distortion, Gain, PitchShift, LowpassFilter, HighpassFilter]
 effects_to_parameters = {
@@ -71,11 +72,19 @@ for effect_name, param_dict in effects_to_parameters.items():
 @app.route('/')
 def index():
     return render_template('index.html')
-    
+
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
+@app.route('/contact')
+def contact():
+    return render_template('contact.html')
+
 def resample_tone(file):
     with ReadableAudioFile(io.BytesIO(file.read())) as f:
         re_sampled = f.resampled_to(SAMPLE_RATE)
-        tone = np.squeeze(re_sampled.read(int(SAMPLE_RATE * f.duration)),axis=0)
+        tone = np.squeeze(re_sampled.read(int(SAMPLE_RATE * f.duration)), axis=0)
         re_sampled.close()
         f.close()
     return tone
@@ -105,10 +114,17 @@ def process_audio_from_outputs(effect, params, metadata,sample_rate=16000):
         return effect_name, matched_params, predicted_wet
     
 
-@app.route('/upload_wet_tone',methods=['GET','POST'])
+def audio_to_base64(audio_np, sample_rate):
+    """Convert numpy audio array to base64-encoded WAV string."""
+    buffer = BytesIO()
+    sf.write(buffer, audio_np, sample_rate, format='WAV')
+    buffer.seek(0)
+    audio_base64 = base64.b64encode(buffer.read()).decode('utf-8')
+    return audio_base64
+
+@app.route('/upload_wet_tone', methods=['GET', 'POST'])
 def upload_wet_tone():
     try:
-        # Ensure a file was uploaded
         if "file" not in request.files:
             return jsonify({"error": "No file uploaded"}), 400
         file = request.files["file"]
@@ -118,17 +134,15 @@ def upload_wet_tone():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route('/upload_dry_tone',methods=['GET','POST'])
+@app.route('/upload_dry_tone', methods=['GET', 'POST'])
 def upload_dry_tone():
     try:
-        # Ensure a file was uploaded
         if "file" not in request.files:
             return jsonify({"error": "No file uploaded"}), 400
         file = request.files["file"]
         tone = resample_tone(file)
         session['dry_tone'] = tone.tolist()
         return jsonify({"message": "Dry tone uploaded successfully"})
-    
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -141,6 +155,7 @@ def predict():
 
         dry_tone = feature_extractor.get_spectrogram(np.array(session["dry_tone"])).to(device)
         wet_tone = feature_extractor.get_spectrogram(np.array(session["wet_tone"])).to(device)
+
         # TODO: Implement actual prediction logic
         effect = classifier(dry_tone, wet_tone)
         print(effect)
@@ -158,23 +173,25 @@ def predict():
             str(key): round(float(value), 3) 
             for key, value in matched_params.items()
         }
-        # virtual_file = io.BytesIO()
-        # wavfile.write(virtual_file, SAMPLE_RATE, predicted_tone)
-        # virtual_file.seek(0)
-        
-        # # Encode to base64 for sending to frontend
-        # breakpoint()
-        # audio_base64 = base64.b64encode(virtual_file.read()).decode('utf-8')
-        
+
+        # Convert audio to base64
+        dry_tone_np = np.array(session['dry_tone'])  # Retrieve dry tone from session
+        predicted_wet_np = predicted_wet             # Predicted wet tone from processing
+
+        dry_tone_base64 = audio_to_base64(dry_tone_np, SAMPLE_RATE)
+        predicted_wet_base64 = audio_to_base64(predicted_wet_np, SAMPLE_RATE)
+
+        # Include audio data in the response
         return jsonify({
             "message": "Prediction successful",
             "predicted_effect": effect_name,
-            "predicted_parameters": formatted_params
+            "predicted_parameters": formatted_params,
+            "dry_tone": dry_tone_base64,
+            "predicted_wet_tone": predicted_wet_base64
         })
 
     except Exception as e:
-        return jsonify({"error": str(e)}),500
+        return jsonify({"error": str(e)}), 500
 
-if __name__ == "main":
+if __name__ == '__main__':
     app.run(debug=True)
-

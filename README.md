@@ -1,8 +1,5 @@
-Tone Grabber 🎸🎛️
+# Tone Grabber 🎸🎛️
 Tone Grabber is a machine learning project aimed at helping musicians recreate the tone of their favorite artists or recordings by predicting the audio effects needed to transform a dry input tone into a target tone. By leveraging advanced neural network architectures and audio processing techniques, Tone Grabber models analyze differences between two audio signals and recommend specific effects (e.g., reverb, delay, gain) along with their parameters to achieve the desired transformation.
-
-## Features
-Currently we have built out multiclass classifiers based on
 
 ## Installation
 
@@ -15,25 +12,20 @@ To get started with Tone Grabber, follow these steps:
     ```
 
 2. Install the required dependencies:
-    due to cuda dependency issues with the versions of pytorch and tensorflow used in this project we recommend using 2 separate enviornments.
-    To install the tensorflow enviornment run the following commands 
-    ```sh
-    python3 -m venv tone-grabber-venv
-    source tone-grabber-venv/bin/activate
-    pip install -r requirements.txt
-    ```
-    To install the pytorch eniornment run the following commands
     ```sh
     python3 -m venv tone-grabber-venv-torch
     source tone-grabber-venv-torch/bin/activate
-    pip install -r requirements_torch.txt
+    pip install -r requirements.txt
     ```
 ## Usage
+To get a better understanding of the tone grabber repo, check out our demo notebook: [demo.ipynb](demo.ipynb)
 
-To replicate experiments with the multiclass classifier, first install the nsynth dataset into the data folder from <a here href=https://magenta.tensorflow.org/datasets/nsynth>
+The demo notebook covers:
+- How to use the dataset generator
+- How to use the feature extractor class to get the audio spectrogram, loudness, and fundamental frequency 
+- How to run inference with the parameter prrediction model and intepreate the outputs to apply the predicted effects to audio samples
 
-Then run:
-```sh
-python train_classifier.py
+To recreate the parameter prediction experiments:
 ```
-You could also chose to use a different dataset of audio samples, although you may have to make some other adjustments
+python train.py
+```

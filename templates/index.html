@@ -1,67 +1,131 @@
 {% extends 'parent.html' %}
-{% block title %}Home{% endblock %}
+{% block title %}Tone Predictor{% endblock %}
 
 {% block head %}
     {{ super() }}
     {{ dropzone.load_css() }}
     <style>
-        .dropzone {
-            flex: auto;
-            border: 2px dashed #0087F7;
-            border-radius: 5px;
-            background-color: whitesmoke;
-            color: #0087F7;
-            text-align: center;
-            justify-self: center;
-            width: 400px;
-            height: 400px;
-            display: flex;
-        }
-        .dz-default.dz-message {
-            flex: auto;
-            justify-content: center;
-            align-items: center;
-        }
         #container {
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 36px;
-            gap: 20px;
+            padding: 50px;
+            gap: 40px;
+            background: #333333; /* Reverted to original medium gray */
+            border-radius: 12px;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.2), 0 4px 20px rgba(0, 0, 0, 0.4);
+            max-width: 700px;
+            width: 90%;
+            margin: 40px auto;
+            color: #e0e0e0;
         }
         .upload-section {
             text-align: center;
+            width: 100%;
+            max-width: 500px;
+        }
+        h2 {
+            color: #a0aec0;
+            font-weight: 500;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+            letter-spacing: 0.5px;
+            text-transform: capitalize;
+        }
+        .dropzone {
+            border: 2px dashed #4CAF50;
+            border-radius: 8px;
+            background: #3a4a3a; /* Green-tinted gray */
+            color: #4CAF50;
+            width: 100%;
+            height: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: border-color 0.3s ease;
+            font-size: 1.1rem;
+        }
+        .dropzone:hover {
+            border-color: #388E3C;
+        }
+        .dz-default.dz-message {
+            font-size: 1rem;
+            font-weight: 400;
+            color: #4CAF50;
         }
         button {
-            margin-top: 20px;
-            padding: 10px 20px;
-            background-color: #0087F7;
-            color: white;
+            padding: 12px 30px;
+            background: #4CAF50;
+            color: #ffffff;
             border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 500;
             cursor: pointer;
-            font-size: 16px;
-            border-radius: 5px;
+            transition: background 0.3s ease;
+            width: 180px;
+        }
+        button:hover {
+            background: #388E3C;
         }
         #prediction-result {
-            margin-top: 20px;
-            font-size: 18px;
-            font-weight: bold;
-            color: #333;
+            margin-top: 25px;
+            font-size: 1.1rem;
+            color: #e0e0e0;
             text-align: center;
+            background: #3a4a3a; /* Matches dropzone */
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+        }
+        #prediction-result h3 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+            font-size: 1.3rem;
+        }
+        #prediction-result h4 {
+            color: #a0aec0;
+            font-size: 1rem;
+            margin-bottom: 8px;
+        }
+        .parameters {
+            font-size: 0.95rem;
+            color: #cbd5e1;
+            line-height: 1.7;
         }
         .audio-controls {
-            margin-top: 20px;
+            margin-top: 25px;
             display: flex;
-            gap: 10px;
+            flex-direction: column;
+            gap: 20px;
             justify-content: center;
             align-items: center;
+            flex-wrap: wrap;
         }
-        .audio-controls button {
-            margin-top: 0;
-            min-width: 80px;
+        .audio-controls h3 {
+            color: #a0aec0;
+            font-size: 1.2rem;
+            margin-bottom: 5px;
         }
-        #audioPlayer {
-            margin: 20px 0;
+        .audio-controls audio {
+            width: 300px;
+            outline: none;
+            border-radius: 4px;
+            background: #3a4a3a; /* Matches dropzone */
+        }
+        @media (max-width: 600px) {
+            #container {
+                padding: 20px;
+                margin: 20px auto;
+            }
+            .dropzone {
+                height: 150px;
+            }
+            .audio-controls audio {
+                width: 250px;
+            }
         }
         #upload_container {
             display: flex;
@@ -93,89 +157,55 @@
     <button id="predict-btn" onclick="predict()">Run Prediction</button>
 
     <div id="prediction-result"></div>
-    
-    <!-- Add audio controls -->
+
     <div class="audio-controls">
-        <audio id="audioPlayer" controls></audio>
-        <button id="playButton" onclick="togglePlay()">Play</button>
-        <button id="stopButton" onclick="stopAudio()">Stop</button>
+        <div>
+            <h3>Dry Tone</h3>
+            <audio id="dryAudioPlayer" controls></audio>
+        </div>
+        <div>
+            <h3>Predicted Wet Tone</h3>
+            <audio id="predictedWetAudioPlayer" controls></audio>
+        </div>
     </div>
 </div>
 
 <script>
-    let audioContext;
-    let audioSource;
-
-    async function playAudio(base64Data) {
-        // Initialize AudioContext if not exists
-        if (!audioContext) {
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        }
-
-        try {
-            // Stop any currently playing audio
-            if (audioSource) {
-                audioSource.stop();
-            }
-
-            // Convert base64 to array buffer
-            const response = await fetch(`data:audio/wav;base64,${base64Data}`);
-            const arrayBuffer = await response.arrayBuffer();
-            
-            // Decode audio data
-            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-            
-            // Create source and play
-            audioSource = audioContext.createBufferSource();
-            audioSource.buffer = audioBuffer;
-            audioSource.connect(audioContext.destination);
-            audioSource.start(0);
-        } catch (error) {
-            console.error('Error playing audio:', error);
-        }
-    }
-
-    function stopAudio() {
-        if (audioSource) {
-            audioSource.stop();
-            audioSource = null;
-        }
-    }
-
-    function togglePlay() {
-        if (audioContext && audioContext.state === 'suspended') {
-            audioContext.resume();
-        }
-    }
-
     function predict() {
-        document.getElementById("prediction-result").innerHTML = "Predicting...";
+        const resultDiv = document.getElementById("prediction-result");
+        resultDiv.innerHTML = "Predicting...";
+        resultDiv.style.opacity = "0.7";
 
         fetch('/predict')
         .then(response => response.json())
         .then(data => {
+            resultDiv.style.opacity = "1";
             if (data.error) {
-                document.getElementById("prediction-result").innerHTML = "Error: " + data.error;
+                resultDiv.innerHTML = `Error: ${data.error}`;
             } else {
-                // Check if predicted_parameters exists
                 const paramsList = data.predicted_parameters ? 
                     Object.entries(data.predicted_parameters)
                         .map(([key, value]) => `${key}: ${value}`)
                         .join('<br>')
                     : 'No parameters available';
                 
-                document.getElementById("prediction-result").innerHTML = 
-                    `<h3>Predicted Effect: ${data.predicted_effect || 'Unknown'}</h3>
-                     <h4>Parameters:</h4>
-                     <div class="parameters">${paramsList}</div>`;
-                
-                if (data.audio_data) {
-                    playAudio(data.audio_data);
+                resultDiv.innerHTML = `
+                    <h3>Predicted Effect: ${data.predicted_effect || 'Unknown'}</h3>
+                    <h4>Parameters:</h4>
+                    <div class="parameters">${paramsList}</div>`;
+
+                // Set audio sources for both players
+                if (data.dry_tone) {
+                    document.getElementById("dryAudioPlayer").src = `data:audio/wav;base64,${data.dry_tone}`;
+                }
+                if (data.predicted_wet_tone) {
+                    document.getElementById("predictedWetAudioPlayer").src = `data:audio/wav;base64,${data.predicted_wet_tone}`;
                 }
             }
         })
         .catch(error => {
-            document.getElementById("prediction-result").innerHTML = "Error: Unable to fetch prediction";
+            resultDiv.style.opacity = "1";
+            resultDiv.innerHTML = "Error: Unable to fetch prediction";
             console.error('Error:', error);
         });
     }

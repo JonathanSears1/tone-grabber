@@ -1,0 +1,66 @@
+{% extends 'parent.html' %}
+{% block title %}Contact{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        #container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px;
+            gap: 40px;
+            background: #2d3748;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            max-width: 700px;
+            width: 90%;
+            margin: 30px auto;
+            color: #e2e8f0;
+        }
+        h2 {
+            color: #a0aec0;
+            font-weight: 500;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            letter-spacing: 0.5px;
+        }
+        p {
+            font-size: 1.1rem;
+            color: #cbd5e1;
+            line-height: 1.7;
+            text-align: center;
+        }
+        a {
+            color: #4CAF50;
+            text-decoration: none;
+        }
+        a:hover {
+            color: #388E3C;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            margin: 10px 0;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div id="container">
+    <h2>Contact Us</h2>
+    <p>
+        Reach out to the Tone Grabber team at Tulane University Capstone.
+    </p>
+    <ul>
+        {% set usernames = ['jsears1', 'rgeorge7', 'nradwin', 'zgoodman1'] %}
+        {% for username in usernames %}
+            <li>
+                <a href="mailto:{{ username }}@tulane.edu">{{ username }}@tulane.edu</a>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}
