@@ -14,7 +14,8 @@ from pedalboard import Reverb, Delay, Chorus, Distortion, Gain
 from dataset.data_generator import DataGenerator
 import torch
 import base64
-import soundfile as wavfile
+import soundfile as sf  # Changed from 'wavfile' to 'sf' for clarity
+from io import BytesIO
 
 app = Flask(__name__)
 app.debug = True
@@ -24,11 +25,9 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 dropzone = Dropzone(app)
 SAMPLE_RATE = 16000
 app.config["SESSION_TYPE"] = "filesystem"
-# app.config["SECRET_KEY"] = "supersecretkey"
 Session(app)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-#TODO: Change this to be read in by the user, ie let the user pick and choose what effects they have start with a checklist + button
 
 effects_to_parameters = {
     "Reverb": {
@@ -67,7 +66,6 @@ num_parameters = metadata['total_parameters']
 num_effects = len(metadata['effect_to_idx'].keys())
 model = ParameterPrediction(num_effects, num_parameters, param_mask, batch_size=1, num_heads=8).to(device)
 feature_extractor = FeatureExtractorTorch()
-#model = model.load_state_dict(torch.load("saved_models/parameter_prediction.pth")).to(device)
 
 @app.route('/')
 def index():
@@ -91,26 +89,21 @@ def resample_tone(file):
 
 def process_audio_from_outputs(effect, params, sample_rate, metadata):
     dry_tone = np.array(session['dry_tone'])
-    # Convert the tensor to an integer using .item()
     effect_idx = torch.argmax(effect).item()
     predicted_effect_pb = metadata['effects'][effect_idx]
     params = params.detach().cpu()
     
-    # Apply softmax to parameters
     softmax = torch.nn.Softmax(dim=0)
     params = softmax(params[0])
     params = params.numpy()
     
-    # Get effect name and parameter ranges
     effect_name = metadata['index_to_effect'][effect_idx]
     param_ranges = metadata['effects_to_parameters'][effect_name]
     
-    # Calculate true parameter values based on ranges
     predicted_params = []
     non_zero_params = [p for p in params if p != 0]
     
     for param_val, (param_name, (min_val, max_val)) in zip(non_zero_params, param_ranges.items()):
-        # Scale softmaxed value to parameter range
         true_val = min_val + param_val * (max_val - min_val)
         predicted_params.append(true_val)
     param_names = param_ranges.keys()
@@ -119,10 +112,17 @@ def process_audio_from_outputs(effect, params, sample_rate, metadata):
     predicted_wet = predicted_effect_with_params(dry_tone, sample_rate)
     return effect_name, matched_params, predicted_wet
 
+def audio_to_base64(audio_np, sample_rate):
+    """Convert numpy audio array to base64-encoded WAV string."""
+    buffer = BytesIO()
+    sf.write(buffer, audio_np, sample_rate, format='WAV')
+    buffer.seek(0)
+    audio_base64 = base64.b64encode(buffer.read()).decode('utf-8')
+    return audio_base64
+
 @app.route('/upload_wet_tone', methods=['GET', 'POST'])
 def upload_wet_tone():
     try:
-        # Ensure a file was uploaded
         if "file" not in request.files:
             return jsonify({"error": "No file uploaded"}), 400
         file = request.files["file"]
@@ -135,7 +135,6 @@ def upload_wet_tone():
 @app.route('/upload_dry_tone', methods=['GET', 'POST'])
 def upload_dry_tone():
     try:
-        # Ensure a file was uploaded
         if "file" not in request.files:
             return jsonify({"error": "No file uploaded"}), 400
         file = request.files["file"]
@@ -154,26 +153,37 @@ def predict():
 
         dry_tone = feature_extractor.get_spectrogram(np.array(session["dry_tone"])).to(device)
         wet_tone = feature_extractor.get_spectrogram(np.array(session["wet_tone"])).to(device)
-        # TODO: Implement actual prediction logic
-        _, effect, params = model(dry_tone, wet_tone)
-        effect_name, matched_params, predicted_tone = process_audio_from_outputs(effect, params, SAMPLE_RATE, metadata)
+        model_output = model(dry_tone, wet_tone)
+        print(f"Model output length: {len(model_output)}")  # Debug print
+
+        # Handle varying model output lengths
+        if len(model_output) == 3:
+            _, effect, params = model_output  # Unpack as (loss, effect, params)
+        elif len(model_output) == 2:
+            effect, params = model_output    # Unpack as (effect, params)
+        else:
+            raise ValueError(f"Unexpected number of elements in model output: {len(model_output)}")
+
+        effect_name, matched_params, predicted_wet = process_audio_from_outputs(effect, params, SAMPLE_RATE, metadata)
         formatted_params = {
             str(key): round(float(value), 3) 
             for key, value in matched_params.items()
         }
-        # virtual_file = io.BytesIO()
-        # wavfile.write(virtual_file, SAMPLE_RATE, predicted_tone)
-        # virtual_file.seek(0)
-        
-        # # Encode to base64 for sending to frontend
-        # breakpoint()
-        # audio_base64 = base64.b64encode(virtual_file.read()).decode('utf-8')
-        
+
+        # Convert audio to base64
+        dry_tone_np = np.array(session['dry_tone'])  # Retrieve dry tone from session
+        predicted_wet_np = predicted_wet             # Predicted wet tone from processing
+
+        dry_tone_base64 = audio_to_base64(dry_tone_np, SAMPLE_RATE)
+        predicted_wet_base64 = audio_to_base64(predicted_wet_np, SAMPLE_RATE)
+
+        # Include audio data in the response
         return jsonify({
             "message": "Prediction successful",
             "predicted_effect": effect_name,
-            "predicted_parameters": formatted_params
-            # "audio_data": audio_base64  # Uncomment if audio playback is implemented
+            "predicted_parameters": formatted_params,
+            "dry_tone": dry_tone_base64,
+            "predicted_wet_tone": predicted_wet_base64
         })
 
     except Exception as e:

@@ -11,7 +11,7 @@
             align-items: center;
             padding: 50px;
             gap: 40px;
-            background: #2d3747; /* Reverted to original medium gray */
+            background: #333333; /* Reverted to original medium gray */
             border-radius: 12px;
             box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.2), 0 4px 20px rgba(0, 0, 0, 0.4);
             max-width: 700px;
@@ -98,24 +98,22 @@
         .audio-controls {
             margin-top: 25px;
             display: flex;
-            gap: 15px;
+            flex-direction: column;
+            gap: 20px;
             justify-content: center;
             align-items: center;
             flex-wrap: wrap;
+        }
+        .audio-controls h3 {
+            color: #a0aec0;
+            font-size: 1.2rem;
+            margin-bottom: 5px;
         }
         .audio-controls audio {
             width: 300px;
             outline: none;
             border-radius: 4px;
             background: #3a4a3a; /* Matches dropzone */
-        }
-        .audio-controls button {
-            padding: 10px 20px;
-            min-width: 120px;
-            background: #4CAF50;
-        }
-        .audio-controls button:hover {
-            background: #388E3C;
         }
         @media (max-width: 600px) {
             #container {
@@ -149,60 +147,18 @@
     <div id="prediction-result"></div>
 
     <div class="audio-controls">
-        <audio id="audioPlayer" controls></audio>
-        <button id="playPauseButton" onclick="togglePlayPause()">Play/Pause</button>
+        <div>
+            <h3>Dry Tone</h3>
+            <audio id="dryAudioPlayer" controls></audio>
+        </div>
+        <div>
+            <h3>Predicted Wet Tone</h3>
+            <audio id="predictedWetAudioPlayer" controls></audio>
+        </div>
     </div>
 </div>
 
 <script>
-    let audioContext;
-    let audioSource;
-    let lastAudioData = null;
-
-    async function playAudio(base64Data) {
-        if (!audioContext) {
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        try {
-            if (audioSource) {
-                audioSource.stop();
-            }
-            const response = await fetch(`data:audio/wav;base64,${base64Data}`);
-            const arrayBuffer = await response.arrayBuffer();
-            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-            audioSource = audioContext.createBufferSource();
-            audioSource.buffer = audioBuffer;
-            audioSource.connect(audioContext.destination);
-            audioSource.start(0);
-            document.getElementById("playPauseButton").textContent = "Pause";
-        } catch (error) {
-            console.error('Error playing audio:', error);
-        }
-    }
-
-    function stopAudio() {
-        if (audioSource) {
-            audioSource.stop();
-            audioSource = null;
-            document.getElementById("playPauseButton").textContent = "Play/Pause";
-        }
-    }
-
-    function togglePlayPause() {
-        if (audioContext) {
-            if (audioContext.state === 'suspended' || document.getElementById("playPauseButton").textContent === "Play/Pause") {
-                audioContext.resume();
-                document.getElementById("playPauseButton").textContent = "Pause";
-                if (!audioSource && lastAudioData) {
-                    playAudio(lastAudioData);
-                }
-            } else if (audioContext.state === 'running') {
-                audioContext.suspend();
-                document.getElementById("playPauseButton").textContent = "Play/Pause";
-            }
-        }
-    }
-
     function predict() {
         const resultDiv = document.getElementById("prediction-result");
         resultDiv.innerHTML = "Predicting...";
@@ -225,10 +181,13 @@
                     <h3>Predicted Effect: ${data.predicted_effect || 'Unknown'}</h3>
                     <h4>Parameters:</h4>
                     <div class="parameters">${paramsList}</div>`;
-                
-                if (data.audio_data) {
-                    lastAudioData = data.audio_data;
-                    playAudio(data.audio_data);
+
+                // Set audio sources for both players
+                if (data.dry_tone) {
+                    document.getElementById("dryAudioPlayer").src = `data:audio/wav;base64,${data.dry_tone}`;
+                }
+                if (data.predicted_wet_tone) {
+                    document.getElementById("predictedWetAudioPlayer").src = `data:audio/wav;base64,${data.predicted_wet_tone}`;
                 }
             }
         })
