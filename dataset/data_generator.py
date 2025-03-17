@@ -21,13 +21,15 @@ class DataGenerator():
     def __init__(self, 
                  effects_to_parameters: dict,
                  effects: list,
-                 loudnees_and_f0 = False) -> None:
+                 loudnees_and_f0 = False,
+                 parameters=True) -> None:
         self.effects_to_parameters = effects_to_parameters
         # calculate the total number of possible parameters
         total_parameters = 0
         for effect, params in effects_to_parameters.items():
             total_parameters += len(params)
         self.total_parameters = total_parameters
+        self.parameters=parameters
         # Create a dictionary to store the indices of the parameters for each effect
         effect_to_param_indices = {}
         current_index = 0
@@ -102,7 +104,7 @@ class DataGenerator():
                         std_dev = (max_val - min_val) / 4
                         # Calculate a and b
                         a, b = (min_val - mean) / std_dev, (max_val - mean) / std_dev
-                        value = truncnorm.rvs(a,b,loc=mean,scale=std_dev)
+                        value = float(truncnorm.rvs(a,b,loc=mean,scale=std_dev))
                         # Add the parameter to the dictionary
                         effect_data[param] = value
                         parameter_values.append(value)
@@ -132,7 +134,7 @@ class DataGenerator():
                 # Append the data to the list
                 data.append(wet_tone_data)
         # Return the data
-        dataset = EffectChainDataset(data)
+        dataset = EffectChainDataset(data,self.parameters)
         return dataset
     def get_metadata(self):
         param_mask_idx = {self.effect_to_index[k]:v for k,v in self.param_mask.items()}

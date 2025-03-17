@@ -58,12 +58,13 @@ class EffectsChain():
         return {"effects":self.effects, "parameters":self.parameters,"param_dict":self.param_dicts, "dry_tone_path":self.dry_tone_path, "wet_tone_path":self.wet_tone_path}
 
 class EffectChainDataset(Dataset):
-    def __init__(self, data, loudness_and_f0=False):
+    def __init__(self, data,parameters=True, loudness_and_f0=False):
         '''
         Pass in a list of EffectsChain objects
         '''
         self.data = data
         self.loudness_and_f0=loudness_and_f0
+        self.parameters = parameters
         return
     
     def __len__(self):
@@ -80,9 +81,8 @@ class EffectChainDataset(Dataset):
         dry_tone_spectrogram = entry['dry_tone_spec']
         names = entry['names']
         effects = entry['effects']
-        parameters = entry['parameters']
-        param_dict = entry['param_dict']
-
+        joint_spectrogram = np.concatenate((dry_tone_spectrogram,wet_tone_spectrogram),axis=0)
+        
         if self.loudness_and_f0:
             wet_tone_loudness = entry['wet_tone_loudness']
             wet_tone_f0 = entry['wet_tone_f0']
@@ -108,6 +108,11 @@ class EffectChainDataset(Dataset):
             wet_tone = {
                 "spectrogram":wet_tone_spectrogram,
                 }
+        if self.parameters:
+            parameters = entry['parameters']
+            param_dict = entry['param_dict']
+            return {"dry_tone":dry_tone,"wet_tone":wet_tone,"effect_names":names,"effects":effects,"parameters":parameters,"joint_spectrogram":joint_spectrogram,"param_dict":param_dict}
+        
                 
-        return {"dry_tone":dry_tone,"wet_tone":wet_tone,"effect_names":names,"effects":effects,"parameters":parameters,"param_dict":param_dict}
+        return {"dry_tone":dry_tone,"wet_tone":wet_tone,"effect_names":names,"joint_spectrogram":joint_spectrogram,"effects":effects}
         
