@@ -4,6 +4,7 @@
 {% block head %}
     {{ super() }}
     {{ dropzone.load_css() }}
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
         #container {
             display: flex;
@@ -127,6 +128,21 @@
                 width: 250px;
             }
         }
+        .spectrogram-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .spectrogram {
+            width: 100%;
+            height: 200px;
+            object-fit: contain;
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 10px;
+        }
     </style>
 {% endblock %}
 
@@ -158,6 +174,21 @@
         <div>
             <h3>Predicted Wet Tone</h3>
             <audio id="predictedWetAudioPlayer" controls></audio>
+        </div>
+    </div>
+
+    <div class="spectrogram-container">
+        <div>
+            <h3>Dry Tone Spectrogram</h3>
+            <img id="drySpectrogram" class="spectrogram" alt="Dry Tone Spectrogram">
+        </div>
+        <div>
+            <h3>Wet Tone Spectrogram</h3>
+            <img id="wetSpectrogram" class="spectrogram" alt="Wet Tone Spectrogram">
+        </div>
+        <div>
+            <h3>Predicted Tone Spectrogram</h3>
+            <img id="predictedSpectrogram" class="spectrogram" alt="Predicted Tone Spectrogram">
         </div>
     </div>
 </div>
@@ -195,6 +226,15 @@
                 }
                 if (data.predicted_wet_tone) {
                     document.getElementById("predictedWetAudioPlayer").src = `data:audio/wav;base64,${data.predicted_wet_tone}`;
+                }
+
+                // Display spectrograms
+                if (data.spectrograms) {
+                    document.getElementById("drySpectrogram").src = `data:image/png;base64,${data.spectrograms.dry}`;
+                    document.getElementById("wetSpectrogram").src = `data:image/png;base64,${data.spectrograms.wet}`;
+                    document.getElementById("predictedSpectrogram").src = `data:image/png;base64,${data.spectrograms.predicted}`;
+                } else {
+                    console.error('No spectrograms in response:', data);
                 }
             }
         })

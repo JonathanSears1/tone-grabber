@@ -17,6 +17,8 @@ import torch
 import base64
 import soundfile as sf  # Changed from 'wavfile' to 'sf' for clarity
 from io import BytesIO
+import matplotlib.pyplot as plt
+import librosa.display
 
 
 
@@ -152,6 +154,25 @@ def audio_to_base64(audio_np, sample_rate):
     audio_base64 = base64.b64encode(buffer.read()).decode('utf-8')
     return audio_base64
 
+def create_spectrogram_image(audio_data, sample_rate=16000):
+    """Create a spectrogram image from audio data and return it as base64 string."""
+    # Create mel spectrogram
+    mel_spect = librosa.feature.melspectrogram(y=audio_data, sr=sample_rate, n_mels=128)
+    mel_spect_db = librosa.power_to_db(mel_spect, ref=np.max)
+    
+    # Create figure
+    plt.figure(figsize=(10, 4))
+    librosa.display.specshow(mel_spect_db, sr=sample_rate, x_axis='time', y_axis='mel')
+    plt.colorbar(format='%+2.0f dB')
+    plt.title('Mel Spectrogram')
+    
+    # Convert plot to base64 string
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0)
+    plt.close()
+    buf.seek(0)
+    return base64.b64encode(buf.getvalue()).decode('utf-8')
+
 @app.route('/predict', methods=['GET'])
 def predict():
     """Runs the model on the uploaded dry and wet tones"""
@@ -159,16 +180,16 @@ def predict():
         if "dry_tone" not in session or "wet_tone" not in session:
             return jsonify({"error": "Both dry and wet tones must be uploaded first"}), 400
 
-        dry_tone = feature_extractor.get_spectrogram(np.array(session["dry_tone"])).to(device)
-        wet_tone = feature_extractor.get_spectrogram(np.array(session["wet_tone"])).to(device)
+        dry_tone_spec = feature_extractor.get_spectrogram(np.array(session["dry_tone"])).to(device)
+        wet_tone_spec = feature_extractor.get_spectrogram(np.array(session["wet_tone"])).to(device)
         # TODO: Implement actual prediction logic
-        effect = classifier(dry_tone, wet_tone)
+        effect = classifier(dry_tone_spec, wet_tone_spec)
         print(effect)
         effect_idx = torch.argmax(effect)
         effect_name = metadata['index_to_effect'][int(effect_idx)]
         print(effect_name)
         
-        joint_spec = torch.cat((dry_tone.unsqueeze(0),wet_tone.unsqueeze(0)),dim=1)
+        joint_spec = torch.cat((dry_tone_spec.unsqueeze(0),wet_tone_spec.unsqueeze(0)),dim=1)
         param_model = parameter_model_dict[effect_name]
         params = param_model(joint_spec.to(device))
         print(params)
@@ -179,18 +200,28 @@ def predict():
             for key, value in matched_params.items()
         }
         # Convert audio to base64
+        predicted_spectrogram = feature_extractor.get_spectrogram(predicted_tone)
         dry_tone_base64 = audio_to_base64(np.array(session['dry_tone']), SAMPLE_RATE)
         predicted_wet_base64 = audio_to_base64(predicted_tone, SAMPLE_RATE)
         wet_tone_base64 = audio_to_base64(np.array(session['wet_tone']), SAMPLE_RATE)
-
-        # Include audio data in the response
+        
+        # Create spectrogram images
+        dry_spec_img = create_spectrogram_image(np.array(session['dry_tone']))
+        wet_spec_img = create_spectrogram_image(np.array(session['wet_tone']))
+        predicted_spec_img = create_spectrogram_image(predicted_tone)
+        
         return jsonify({
             "message": "Prediction successful",
             "predicted_effect": effect_name,
             "predicted_parameters": formatted_params,
             "dry_tone": dry_tone_base64,
             "wet_tone": wet_tone_base64,
-            "predicted_wet_tone": predicted_wet_base64
+            "predicted_wet_tone": predicted_wet_base64,
+            "spectrograms": {
+                "dry": dry_spec_img,
+                "wet": wet_spec_img,
+                "predicted": predicted_spec_img
+            }
         })
 
     except Exception as e:
