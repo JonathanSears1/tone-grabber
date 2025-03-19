@@ -2,7 +2,10 @@ Tone Grabber 🎸🎛️
 Tone Grabber is a machine learning project aimed at helping musicians recreate the tone of their favorite artists or recordings by predicting the audio effects needed to transform a dry input tone into a target tone. By leveraging advanced neural network architectures and audio processing techniques, Tone Grabber models analyze differences between two audio signals and recommend specific effects (e.g., reverb, delay, gain) along with their parameters to achieve the desired transformation.
 
 ## Features
-Currently we have built out multiclass classifiers based on
+Tone grabber currently supports:
+    - Effect classification with 97% test and validation accuracy
+    - Parameter prediction models with R^2 scores ranging from .94-.96 depending on the effect
+    - Model deployment with flask and a web UI 
 
 ## Installation
 
