@@ -32,7 +32,7 @@ To get started with Tone Grabber, follow these steps:
     ```
 ## Usage
 
-To replicate experiments with the multiclass classifier, first install the nsynth dataset into the data folder from <a here href=https://magenta.tensorflow.org/datasets/nsynth>
+To replicate experiments with the multiclass classifier, first install the nsynth dataset into the data folder from [here](https://magenta.tensorflow.org/datasets/nsynth)
 
 Then run:
 ```sh
@@ -44,7 +44,7 @@ To replicate the parameter prediction experiments, install the nsynth dataset if
 python train_parameter_models.py
 ```
 
-To run the web based UI locally, once you have either replacated the experiments or downloaded the model weights from <a here href="https://drive.google.com/drive/folders/1zrtoVf5tIh8cRU3_MX_TqXIOkF0kpJ1r?usp=sharing">:
+To run the web based UI locally, once you have either replacated the experiments or downloaded the model weights from [here](https://drive.google.com/drive/folders/1zrtoVf5tIh8cRU3_MX_TqXIOkF0kpJ1r?usp=sharing):
 ```sh
 flask run
 ```
