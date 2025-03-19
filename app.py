@@ -1,9 +1,8 @@
 from flask import Flask, request, jsonify
 import os
-from flask import Flask, render_template, request, flash, session
+from flask import Flask, render_template, request, session
 from flask_session import Session
 from flask_dropzone import Dropzone
-from werkzeug.utils import secure_filename
 import uuid
 from pedalboard.io import ReadableAudioFile
 import io
@@ -12,7 +11,7 @@ from model.parameter_prediction import ParameterPredictionResNet
 from model.classifier import EffectClassifier
 from dataset.feature_extractor_torch import FeatureExtractorTorch
 from pedalboard import Distortion, Gain, LowpassFilter, HighpassFilter, PitchShift
-from dataset.data_generator import DataGenerator
+
 import torch
 import base64
 import soundfile as sf  # Changed from 'wavfile' to 'sf' for clarity
@@ -200,7 +199,6 @@ def predict():
             for key, value in matched_params.items()
         }
         # Convert audio to base64
-        predicted_spectrogram = feature_extractor.get_spectrogram(predicted_tone)
         dry_tone_base64 = audio_to_base64(np.array(session['dry_tone']), SAMPLE_RATE)
         predicted_wet_base64 = audio_to_base64(predicted_tone, SAMPLE_RATE)
         wet_tone_base64 = audio_to_base64(np.array(session['wet_tone']), SAMPLE_RATE)

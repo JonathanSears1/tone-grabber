@@ -1,4 +1,5 @@
-from model.parameter_prediction import Trainer, ParameterPredictionResNet
+from model.parameter_prediction import ParameterPredictionResNet
+from model.utils import Trainer
 from dataset.data_generator import DataGenerator
 from pedalboard import Reverb, Delay, Chorus, Distortion, Gain, PitchShift, LowpassFilter, HighpassFilter
 import torch
@@ -100,7 +101,7 @@ for effect_name,parameter_dict in effects_to_parameters.items():
     loss_fn = MSELoss()
     optimizer = Adam(model.parameters(),.001)
     scheduler = ReduceLROnPlateau(optimizer, 'min', patience=2, factor=0.1)
-    trainer = Trainer(model, metadata,0,1)
+    trainer = Trainer(model, metadata)
     model = model.to(device)
     model.compile()
     trainer.train_param_pred(model,train_loader,test_loader,loss_fn,optimizer,scheduler,4,effect_name,epochs=20)

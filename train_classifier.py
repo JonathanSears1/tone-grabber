@@ -112,8 +112,16 @@ def train(model, optimizer, loss_fn, train_loader,test_loader,lr_scheduler, epoc
         if accuracy > best_accuracy:
             print(f"saving model at epoch {epoch+1}")
             best_accuracy = accuracy
-            torch.save(model.state_dict(), "saved_models/multiclass_model.pth")
+            #torch.save(model.state_dict(), "saved_models/multiclass_model.pth")
     return
+
+metadata = generator.get_metadata()
+import pickle
+
+# Save metadata to pickle file
+with open('saved_models/classifier_metadata.pkl', 'wb') as f:
+    pickle.dump(metadata, f)
+
 
 model = EffectClassifier(5).to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=.0001)
@@ -125,10 +133,3 @@ train(model, optimizer, loss_fn, train_loader, test_loader,scheduler, epochs=20)
 print("Model training complete")
 print("Evaluating model")
 eval(model, loss_fn, val_loader)
-
-metadata = generator.get_metadata()
-import pickle
-
-# Save metadata to pickle file
-with open('saved_models/classifier_metadata.pkl', 'wb') as f:
-    pickle.dump(metadata, f)

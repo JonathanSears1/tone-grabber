@@ -1,7 +1,4 @@
 import torch
-from torchvision.models import resnet18
-from .parameter_prediction import CNN
-
 
 class CNN(torch.nn.Module):
     def __init__(self, batch_size):
@@ -49,22 +46,3 @@ class EffectClassifier(torch.nn.Module):
         x = torch.cat([x_wet, x_dry], dim=1)# Unpack attn output
         x = self.cls(self.fc(x))
         return x
-    
-class ResnetClassifier(torch.nn.Module):
-    def __init__(self, n_classes,batch_size=4, embed_dim=512):
-        super(ResnetClassifier, self).__init__()
-    
-    def make_resnet(self,embed_dim):
-        model = resnet18(weights=None)
-        model.conv1 = torch.nn.Conv2d(
-            in_channels=1,  # Change from 3 to 1
-            out_channels=model.conv1.out_channels,  # Keep the same number of output channels
-            kernel_size=model.conv1.kernel_size,
-            stride=model.conv1.stride,
-            padding=model.conv1.padding,
-            bias=model.conv1.bias is not None  # Keep bias settings the same
-        )
-        model.fc = torch.nn.Linear(model.fc.in_features,embed_dim)
-    # Add adaptive pooling before the fully connected layer
-        model.avgpool = torch.nn.AdaptiveAvgPool2d((1, 1))
-        return model

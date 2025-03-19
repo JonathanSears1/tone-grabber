@@ -15,18 +15,17 @@ To get started with Tone Grabber, follow these steps:
     ```
 
 2. Install the required dependencies:
-    due to cuda dependency issues with the versions of pytorch and tensorflow used in this project we recommend using 2 separate enviornments.
-    To install the tensorflow enviornment run the following commands 
+    Linux/Mac:
     ```sh
     python3 -m venv tone-grabber-venv
     source tone-grabber-venv/bin/activate
     pip install -r requirements.txt
     ```
-    To install the pytorch eniornment run the following commands
-    ```sh
-    python3 -m venv tone-grabber-venv-torch
-    source tone-grabber-venv-torch/bin/activate
-    pip install -r requirements_torch.txt
+    Windows:
+    ```powershell
+    python -m venv tone-grabber-venv
+    tone-grabber-venv\Scripts\activate
+    pip install -r requirements.txt    
     ```
 ## Usage
 
@@ -36,4 +35,14 @@ Then run:
 ```sh
 python train_classifier.py
 ```
-You could also chose to use a different dataset of audio samples, although you may have to make some other adjustments
+
+To replicate the parameter prediction experiments, install the nsynth dataset if you haven't already then run:
+```sh
+python train_parameter_models.py
+```
+
+To run the web based UI locally, once you have either replacated the experiments or downloaded the model weights from <a here href="https://drive.google.com/drive/folders/1zrtoVf5tIh8cRU3_MX_TqXIOkF0kpJ1r?usp=sharing">:
+```sh
+flask run
+```
+To get a more in depth understanding of how the code works, check out the demo notebook `demo.ipynb`
