@@ -64,13 +64,13 @@ param_mask = metadata['parameter_mask_idx']
 num_parameters = metadata['total_parameters']
 num_effects = len(metadata['effect_to_idx'].keys())
 classifier = EffectClassifier(num_effects,batch_size=1).to(device)
-classifier.load_state_dict(torch.load("saved_models/multiclass_model.pth"))
+classifier.load_state_dict(torch.load("saved_models/multiclass_model.pth",weights_only=False))
 classifier.eval()
 feature_extractor = FeatureExtractorTorch()
 parameter_model_dict = {}
 for effect_name, param_dict in effects_to_parameters.items():
     model = ParameterPredictionResNet(768,len(param_dict.values())).to(device)
-    model.load_state_dict(torch.load(f"saved_models/{effect_name}_parameter_prediction.pth"))
+    model.load_state_dict(torch.load(f"saved_models/{effect_name}_parameter_prediction.pth",weights_only=False),strict=False)
     parameter_model_dict[effect_name] = model.eval()
 
 @app.route('/')
