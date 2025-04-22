@@ -181,7 +181,7 @@ def predict():
 
         dry_tone_spec = feature_extractor.get_spectrogram(np.array(session["dry_tone"])).to(device)
         wet_tone_spec = feature_extractor.get_spectrogram(np.array(session["wet_tone"])).to(device)
-        # TODO: Implement actual prediction logic
+        
         effect = classifier(dry_tone_spec, wet_tone_spec)
         print(effect)
         effect_idx = torch.argmax(effect)
