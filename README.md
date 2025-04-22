@@ -4,7 +4,7 @@ Tone Grabber is a machine learning project aimed at helping musicians recreate t
 ## Features
 Tone grabber currently supports:
     - Effect classification with 97% test and validation accuracy
-    - Parameter prediction models with R^2 scores ranging from .94-.96 depending on the effect
+    - Parameter prediction models with R^2 scores >.98 for Gain, Distortion, HighPassFilter, LowPassFilter, and PitchShift
     - Model deployment with flask and a web UI 
 
 ## Installation
