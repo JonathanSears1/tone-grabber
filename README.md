@@ -48,4 +48,6 @@ To run the web based UI locally, once you have either replacated the experiments
 ```sh
 flask run
 ```
+To use the models with live playthrough, check out the live demo notebook `live_demo.ipynb`
+
 To get a more in depth understanding of how the code works, check out the demo notebook `demo.ipynb`
